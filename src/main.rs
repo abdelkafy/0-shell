@@ -7,6 +7,7 @@ use crate::models::Command;
 use crate::parser::parser::parser;
 use crate::execute::executor::execute;
 
+
 fn main() {
 
     loop {
