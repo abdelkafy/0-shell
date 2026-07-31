@@ -1,4 +1,4 @@
-use crate::models::{Command, LsFlag};
+use crate::models::{Command, Lsflag};
 
 pub fn parser(input: &str) -> Result<Command, String> {
     let trimmed = input.trim();
@@ -10,20 +10,20 @@ pub fn parser(input: &str) -> Result<Command, String> {
   let name=tokens.collect::<Vec<_>>()[0];
 
     match name.to_ascii_lowercase().as_str() {
-        "echo" => Ok(Command::echo),
+        "echo" => Ok(Command::Echo),
         "cd" => {
-            Ok(Command::cd)
+            Ok(Command::Cd)
         }
-        "ls" => Ok(Command::ls((LsFlag::all))),
-        "pwd" => Ok(Command::pwd),
-        "cat" => Ok(Command::cat),
-        "cp" => Ok(Command::cp),
+        "ls" => Ok(Command::Ls(Lsflag::All)),
+        "pwd" => Ok(Command::Pwd),
+        "cat" => Ok(Command::Cat),
+        "cp" => Ok(Command::Cp),
         "rm" => {
-            Ok(Command::rm)
+            Ok(Command::Rm)
         }
-        "mv" => Ok(Command::mv),
-        "mkdir" => Ok(Command::mkdir),
-        "exit" => Ok(Command::exit),
+        "mv" => Ok(Command::Mv),
+        "mkdir" => Ok(Command::Mkdir),
+        "exit" => Ok(Command::Exit),
         _ => Err("err".to_string()),
     }
 }

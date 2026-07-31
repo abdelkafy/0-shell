@@ -1,22 +1,24 @@
-pub enum LsFlag{
-    all,
-    long,
-    classify,
-     normal,
+pub enum Lsflag{
+    All,
+    Long,
+    Classify,
+    Normal,
 }
-pub enum RmFlag{
-    recursive,
-    normal
-}
+
+//pub enum Rmflag{
+//    Recursive,
+//    Normal
+//}
+
 pub enum Command{
-    echo,
-cd,
-ls (LsFlag) ,
-pwd,
-cat,
-cp,
-rm ,
-mv,
-mkdir,
-exit,
+    Echo,
+    Cd,
+    Ls (Lsflag) ,
+    Pwd,
+    Cat,
+    Cp,
+    Rm ,
+    Mv,
+    Mkdir,
+    Exit,
 }
