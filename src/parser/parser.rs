@@ -6,24 +6,46 @@ pub fn parser(input: &str) -> Result<Command, String> {
         return Err("empty input".into());
     }
 
-    let tokens = trimmed.split_whitespace();
-  let name=tokens.collect::<Vec<_>>()[0];
+    let mut tokens = trimmed.split_whitespace();
+    let name = tokens.next().ok_or("empty input")?;
 
     match name.to_ascii_lowercase().as_str() {
-        "echo" => Ok(Command::Echo),
+        "echo" => {
+            let args = tokens.map(|s| s.to_string()).collect();
+            Ok(Command::Echo(args))
+        }
         "cd" => {
-            Ok(Command::Cd)
+            let path = tokens.next().ok_or("cd: missing operand")?;
+            Ok(Command::Cd(path.to_string()))
         }
         "ls" => Ok(Command::Ls(Lsflag::All)),
         "pwd" => Ok(Command::Pwd),
-        "cat" => Ok(Command::Cat),
-        "cp" => Ok(Command::Cp),
+        "cat" => {
+            let file = tokens.next().ok_or("cat: missing operand")?;
+            Ok(Command::Cat(file.to_string()))
+        }
+        "cp" => {
+            let source = tokens.next()
+                .ok_or("cp: missing source")?;
+
+            let destination = tokens.next()
+                .ok_or("cp: missing destination")?;
+
+            Ok(Command::Cp(
+                source.to_string(),
+                destination.to_string()
+            ))
+        }
         "rm" => {
             Ok(Command::Rm)
         }
         "mv" => Ok(Command::Mv),
-        "mkdir" => Ok(Command::Mkdir),
+        "mkdir" => {
+            let name = tokens.next().ok_or("mkdir: missing operand")?;
+            Ok(Command::Mkdir(name.to_string()))
+        }
         "exit" => Ok(Command::Exit),
         _ => Err("err".to_string()),
     }
 }
+

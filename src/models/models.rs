@@ -11,14 +11,14 @@ pub enum Lsflag{
 //}
 
 pub enum Command{
-    Echo,
-    Cd,
+    Echo(Vec<String>),
+    Cd(String),
     Ls (Lsflag) ,
     Pwd,
-    Cat,
-    Cp,
+    Cat(String),
+    Cp(String, String),
     Rm ,
     Mv,
-    Mkdir,
+    Mkdir(String),
     Exit,
 }
