@@ -1,8 +1,9 @@
-pub enum Lsflag{
-    All,
-    Long,
-    Classify,
-    Normal,
+
+pub struct Ls{
+    pub all: bool,
+    pub long: bool,
+    pub classify: bool,
+    pub path: String,
 }
 
 //pub enum Rmflag{
@@ -13,7 +14,7 @@ pub enum Lsflag{
 pub enum Command{
     Echo,
     Cd,
-    Ls (Lsflag) ,
+    Ls (Ls),
     Pwd,
     Cat,
     Cp,

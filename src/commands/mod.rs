@@ -1,4 +1,4 @@
 pub mod pwd;
-//pub mod echo;
+pub mod ls;
 //pub mod cd;
 //pub mod ls;

@@ -1,4 +1,4 @@
-use crate::models::{Command, Lsflag};
+use crate::models::{Command, models::Ls};
 
 pub fn parser(input: &str) -> Result<Command, String> {
     let trimmed = input.trim();
@@ -14,7 +14,9 @@ pub fn parser(input: &str) -> Result<Command, String> {
         "cd" => {
             Ok(Command::Cd)
         }
-        "ls" => Ok(Command::Ls(Lsflag::All)),
+        "ls" => Ok(Command::Ls(Ls{
+            classify:false, all:false, long:false,path:".".to_string()
+        })),
         "pwd" => Ok(Command::Pwd),
         "cat" => Ok(Command::Cat),
         "cp" => Ok(Command::Cp),

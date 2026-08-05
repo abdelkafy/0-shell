@@ -1,2 +1,2 @@
 pub mod models;
-pub use models::{Command, Lsflag, /*Rmflag*/};
+pub use models::{Command, Ls};
