@@ -19,6 +19,6 @@ pub enum Command{
     Cp(String, String),
     Rm(Vec<String>),
     Mv(Vec<String>),
-    Mkdir(String),
+    Mkdir(Vec<String>),
     Exit,
 }

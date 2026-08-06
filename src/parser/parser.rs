@@ -50,8 +50,15 @@ pub fn parser(input: &str) -> Result<Command, String> {
             Ok(Command::Mv(args))
         }
         "mkdir" => {
-            let name = tokens.next().ok_or("mkdir: missing operand")?;
-            Ok(Command::Mkdir(name.to_string()))
+            let names: Vec<String> = tokens
+                .map(|s| s.to_string())
+                .collect();
+                
+            if names.is_empty() {
+                return Err("mkdir: missing operand".into());
+            }
+        
+            Ok(Command::Mkdir(names))
         }
         "exit" => Ok(Command::Exit),
         _ => Err(format!("Command '{}' not found", name)),

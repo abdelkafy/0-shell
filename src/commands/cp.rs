@@ -26,11 +26,10 @@ pub fn run(source: &str, destination: &str) {
     };
 
 
-    // ما ندعموش directory
-    if source_path.is_dir() {
-        eprintln!("cp: {} is a directory", source);
-        return;
-    }
+    //if source_path.is_dir() {
+    //    eprintln!("cp: {} is a directory", source);
+    //    return;
+    //}
 
 
     match fs::copy(source_path, final_destination) {
