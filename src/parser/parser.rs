@@ -37,15 +37,24 @@ pub fn parser(input: &str) -> Result<Command, String> {
             ))
         }
         "rm" => {
-            Ok(Command::Rm)
+            let args: Vec<String>  = tokens.map(|s| s.to_string()).collect();
+
+            if args.is_empty() {
+                return Err("rm: missing operand".into());
+            }
+        
+            Ok(Command::Rm(args))
         }
-        "mv" => Ok(Command::Mv),
+        "mv" => {
+            let args = tokens.map(|s| s.to_string()).collect();
+            Ok(Command::Mv(args))
+        }
         "mkdir" => {
             let name = tokens.next().ok_or("mkdir: missing operand")?;
             Ok(Command::Mkdir(name.to_string()))
         }
         "exit" => Ok(Command::Exit),
-        _ => Err("err".to_string()),
+        _ => Err(format!("Command '{}' not found", name)),
     }
 }
 

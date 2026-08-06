@@ -17,8 +17,8 @@ pub enum Command{
     Pwd,
     Cat(String),
     Cp(String, String),
-    Rm ,
-    Mv,
+    Rm(Vec<String>),
+    Mv(Vec<String>),
     Mkdir(String),
     Exit,
 }
