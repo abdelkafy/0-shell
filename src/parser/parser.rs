@@ -1,5 +1,5 @@
-use crate::models::{Command, models::Ls};
 
+use crate::models::{Command, models::Ls};
 pub fn parser(input: &str) -> Result<Command, String> {
     let trimmed = input.trim();
     if trimmed.is_empty() {

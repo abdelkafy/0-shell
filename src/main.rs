@@ -1,12 +1,10 @@
-mod commands;
+mod cmd_runner;
 mod models;
-mod execute;
+mod cmd_manager;
 pub mod parser;
 use std::io::{self, Write};
 use crate::models::Command;
 use crate::parser::parser::parser;
-use crate::execute::executor::execute;
-
 
 fn main() {
 
@@ -23,7 +21,7 @@ fn main() {
             Ok(_) => {
                 match parser(&input) {
                     Ok(Command::Exit) => break,
-                    Ok(cmd) => execute(cmd),
+                    Ok(cmd) => (cmd),
                     Err(err) => {
                         eprintln!("{err}");
                         continue;
