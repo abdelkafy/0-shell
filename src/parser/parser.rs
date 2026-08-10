@@ -9,7 +9,7 @@ pub fn parser(input: &str) -> Result<Command, String> {
     let tokens = trimmed.split_whitespace();
   let name=tokens.collect::<Vec<_>>()[0];
 
-    match name.to_ascii_lowercase().as_str() {
+    match name {
         "echo" => Ok(Command::Echo),
         "cd" => {
             Ok(Command::Cd)

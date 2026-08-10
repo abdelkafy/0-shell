@@ -42,8 +42,13 @@ pub fn run(cmd : models::Ls) {
         File { file: file.file, formatted_output: formatted_output.to_string() }
       }).collect();
   }
+  let mut separetor=" ";
+  if cmd.long{
+   separetor="\n";
+
+  }
   for file in formatted{
-    print!("{} ",file.formatted_output);
+    print!("{}{}",file.formatted_output,separetor);
   }
   println!()
 }
@@ -98,7 +103,7 @@ fn long_format(file: &DirEntry) -> String {
     let file_name = file.file_name().to_string_lossy().into_owned();
 
     format!(
-        "{}{} {} {} {} {:>8} {} {}\n",
+        "{}{} {} {} {} {:>8} {} {}",
         type_char,
         perm_str,
         hard_links_pointing,
