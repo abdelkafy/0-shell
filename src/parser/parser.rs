@@ -15,7 +15,7 @@ pub fn parser(input: &str) -> Result<Command, String> {
             Ok(Command::Cd)
         }
         "ls" => Ok(Command::Ls(Ls{
-            classify:false, all:false, long:false,path:".".to_string()
+            classify:true, all:true, long:true,path:".".to_string()
         })),
         "pwd" => Ok(Command::Pwd),
         "cat" => Ok(Command::Cat),
