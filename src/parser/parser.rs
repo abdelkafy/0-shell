@@ -1,5 +1,5 @@
 
-use crate::models::{Command, models::Ls};
+use crate::{cmd_manager::managers::ls_manager, models::{Command, models::Ls}};
 pub fn parser(input: &str) -> Result<Command, String> {
     let trimmed = input.trim();
     if trimmed.is_empty() {
@@ -7,16 +7,18 @@ pub fn parser(input: &str) -> Result<Command, String> {
     }
 
     let tokens = trimmed.split_whitespace();
-  let name=tokens.collect::<Vec<_>>()[0];
+    let args:Vec< String>=tokens.map(|str|str.to_string()).collect();
+  let name=args[0].as_str();
 
     match name {
         "echo" => Ok(Command::Echo),
         "cd" => {
             Ok(Command::Cd)
         }
-        "ls" => Ok(Command::Ls(Ls{
-            classify:true, all:true, long:true,path:".".to_string()
-        })),
+        "ls" => {
+            ls_manager(args[1..].to_vec());
+            Ok(Command::Echo)
+        },
         "pwd" => Ok(Command::Pwd),
         "cat" => Ok(Command::Cat),
         "cp" => Ok(Command::Cp),

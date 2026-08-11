@@ -1,24 +1,38 @@
-use crate::models::{Ls};
+use crate::{cmd_runner::ls, models::Ls};
+use std::path::{Path, PathBuf};
+
 pub fn ls_manager(args :Vec<String>){
     let mut all =false;
     let mut classify=false;
     let mut  long=false;
-    let mut  valid_paths:Vec<String> = Vec::new();
+    let mut  valid_paths:Vec<PathBuf> = Vec::new();
     for arg in args {
         if arg.starts_with("-"){
-            if arg.contains("a"){
-                all=true;
-            }
-            if arg.contains("l"){
-                long=true;
-            }
-             if arg.contains("F"){
-                classify=true;
-            }
-        }else{
-            if {
+            for char in arg.chars(){
+                if char=='a'{
+                    all=true;
+                
+                }else if char=='l' {
+                    long=true;
 
+                }else if char=='F'{
+                    classify=true;
+
+                }else{
+                    println!("invalid")
+                }
             }
+            
+        }else{
+                let path = PathBuf::from(arg);
+                if path.exists(){
+                    valid_paths.push(path);
+                }else{
+                    println!("no")
+                }
         }
+    }
+    for path in valid_paths{
+        ls::run(Ls { all, long, classify, path });
     }
 }

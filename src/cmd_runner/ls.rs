@@ -9,8 +9,7 @@ struct File <'a> {
 }
 
 pub fn run(cmd : models::Ls) {
-  let current_path= env::current_dir().unwrap();
-  let entries = std::fs::read_dir(&current_path).unwrap();
+  let entries = std::fs::read_dir(&cmd.path).unwrap();
   let unfiltered_files = entries.map(|entry|entry.unwrap());
   let mut files=Vec::new();
   if !(cmd.all){

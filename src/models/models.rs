@@ -1,9 +1,11 @@
+use std::path::PathBuf;
+
 
 pub struct Ls{
     pub all: bool,
     pub long: bool,
     pub classify: bool,
-    pub path: String,
+    pub path: PathBuf,
 }
 
 //pub enum Rmflag{
