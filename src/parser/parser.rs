@@ -1,9 +1,9 @@
 
-use crate::{cmd_manager::managers::ls_manager, models::{Command, models::Ls}};
-pub fn parser(input: &str) -> Result<Command, String> {
+use crate::{cmd_manager::managers::{ls_manager,pwd_manager}, models::{Command}};
+pub fn parser(input: &str)  {
     let trimmed = input.trim();
     if trimmed.is_empty() {
-        return Err("empty input".into());
+        return 
     }
 
     let tokens = trimmed.split_whitespace();
@@ -11,23 +11,20 @@ pub fn parser(input: &str) -> Result<Command, String> {
   let name=args[0].as_str();
 
     match name {
-        "echo" => Ok(Command::Echo),
-        "cd" => {
-            Ok(Command::Cd)
-        }
+        "echo" => pwd_manager(),
+        "cd" => pwd_manager(),
         "ls" => {
             ls_manager(args[1..].to_vec());
-            Ok(Command::Echo)
         },
-        "pwd" => Ok(Command::Pwd),
-        "cat" => Ok(Command::Cat),
-        "cp" => Ok(Command::Cp),
+        "pwd" => pwd_manager(),
+        "cat" => pwd_manager(),
+        "cp" => pwd_manager(),
         "rm" => {
-            Ok(Command::Rm)
+            pwd_manager()
         }
-        "mv" => Ok(Command::Mv),
-        "mkdir" => Ok(Command::Mkdir),
-        "exit" => Ok(Command::Exit),
-        _ => Err("err".to_string()),
+        "mv" => pwd_manager(),
+        "mkdir" => pwd_manager(),
+        "exit" => pwd_manager(),
+        _ => print!("err"),
     }
 }

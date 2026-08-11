@@ -19,15 +19,7 @@ fn main() {
                 break;
             }
             Ok(_) => {
-                match parser(&input) {
-                    Ok(Command::Exit) => break,
-                    Ok(cmd) => (cmd),
-                    Err(err) => {
-                        eprintln!("{err}");
-                        continue;
-                    }
-                };
-
+               parser(&input)
             }
             Err(err) => {
                 eprintln!("{err}");

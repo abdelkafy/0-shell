@@ -1,4 +1,4 @@
-use std::{ env, fs::DirEntry, os::unix::fs::{FileTypeExt, MetadataExt, PermissionsExt}};
+use std::{  fs::DirEntry, os::unix::fs::{FileTypeExt, MetadataExt, PermissionsExt}};
 use crate::models;
 use uzers::{get_user_by_uid, get_group_by_gid};
 use std::time::UNIX_EPOCH;
