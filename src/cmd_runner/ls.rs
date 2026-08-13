@@ -1,43 +1,51 @@
-use std::{  fs::DirEntry, os::unix::fs::{FileTypeExt, MetadataExt, PermissionsExt}};
+use std::{  fs::{DirEntry, Metadata}, os::unix::fs::{FileTypeExt, MetadataExt, PermissionsExt}, path::{self, Path, PathBuf}};
 use crate::models;
 use uzers::{get_user_by_uid, get_group_by_gid};
 use std::time::UNIX_EPOCH;
+use std::env;
+use chrono::{DateTime, Local, TimeZone, Datelike};
 
 struct File <'a> {
-  file:&'a DirEntry,
+  file:&'a Path,
   formatted_output: String,
 }
 
 pub fn run(cmd : models::Ls) {
   let entries = std::fs::read_dir(&cmd.path).unwrap();
-  let unfiltered_files = entries.map(|entry|entry.unwrap());
+  let unfiltered_files = entries.map(|entry|entry.unwrap().path());
   let mut files=Vec::new();
   if !(cmd.all){
     // i must change to_str cause it break when emoji
-    files=unfiltered_files.filter(|file|file.file_name().to_str().unwrap().starts_with(".")).collect();
+    files=unfiltered_files.filter(|file|file.file_name().unwrap().to_string_lossy().starts_with(".")).collect();
   }else{
     files=unfiltered_files.collect();
+    let current_dir = PathBuf::from(".");
+    let parent_dir = PathBuf::from("..");
+    files.insert(0, current_dir);
+    files.insert(1, parent_dir);
+
   }
   let mut formatted=Vec::new();
   if cmd.long{
-    formatted=files.iter().map(|file|{
+    formatted=files.iter().map(|path|{
+        
       File{
-        file:file,
-        formatted_output:long_format(file),
+        file:&path,
+        formatted_output:long_format(&path),
       }
     }).collect();
   }else{
-    formatted=files.iter().map(|file|{
+    formatted=files.iter().map(|path|{
       File{
-        file:file,
-        formatted_output:normal_format(file),
+        file:&path,
+        formatted_output:normal_format(&path),
       }
     }).collect();
   }
   if cmd.classify {
       formatted=formatted.iter().map(|file|{
         let mut formatted_output=(&file.formatted_output).to_string();
-        formatted_output.push_str(&classify(file));
+        formatted_output.push_str(&classify(file.file));
         File { file: file.file, formatted_output: formatted_output.to_string() }
       }).collect();
   }
@@ -51,14 +59,13 @@ pub fn run(cmd : models::Ls) {
   }
   println!()
 }
-fn long_format(file: &DirEntry) -> String {
-    let metadata = file.metadata().unwrap();
-    let file_type = file.file_type().unwrap();
+fn long_format(path: &Path) -> String {
+    let metadata = path.symlink_metadata().unwrap();
     let permissions = metadata.permissions();
 
-    let type_char = if file_type.is_dir() {
+    let type_char = if metadata.is_dir() {
         'd'
-    } else if file_type.is_symlink() {
+    } else if metadata.is_symlink() {
         'l'
     } else {
         '-'
@@ -99,7 +106,10 @@ fn long_format(file: &DirEntry) -> String {
         .unwrap_or_default()
         .as_secs();
 
-    let file_name = file.file_name().to_string_lossy().into_owned();
+    let file_name = path
+    .file_name()
+    .map(|s| s.to_string_lossy())
+    .unwrap_or_else(|| path.to_string_lossy());
 
     format!(
         "{}{} {} {} {} {:>8} {} {}",
@@ -109,48 +119,80 @@ fn long_format(file: &DirEntry) -> String {
         owner_name,
         group_name,
         size,
-        modified_at,
+        format_time(modified_at),
         file_name
     )
 }
-fn normal_format(file: &DirEntry)->String{
-    file.file_name().to_string_lossy().into_owned()
+fn normal_format(path: &Path)->String{
+    println!("{:?}",path);
+    match path.file_name(){
+        Some(file_name)=>file_name.to_string_lossy().into_owned(),
+        None=>".".to_string()
+    }
+    
+    
 }
-fn classify(file : &File)-> String{
+fn classify(file_path : &Path)-> String{
   let mut symbole="";
-  if file.file.file_type().unwrap().is_dir() {
+  let metadata=file_path.symlink_metadata().unwrap();
+  if metadata.file_type().is_dir() {
       symbole="/";
-  }else if file.file.file_type().unwrap().is_fifo(){
+  }else if metadata.file_type().is_fifo(){
       symbole="|";
       
-  }else if file.file.file_type().unwrap().is_symlink() {
+  }else if metadata.file_type().is_symlink() {
       symbole="@";
       
-  }else if file.file.file_type().unwrap().is_socket() {
+  }else if metadata.file_type().is_socket() {
       symbole="=";
       
-  }else if is_door(file.file) {
+  }else if is_door(&metadata) {
       symbole=">";
       
-  }else if is_exe(file.file){
+  }else if is_exe(&metadata){
       symbole="*";
       
   }
  symbole.to_string()
 }
-fn is_door(entry: &DirEntry) -> bool {
+fn is_door(entry: &Metadata) -> bool {
     #[cfg(any(target_os = "solaris", target_os = "illumos"))]
     {
-        if let Ok(metadata) = entry.metadata() {
-            let mode = metadata.mode();
-            return (mode & libc::S_IFMT) == libc::S_IFDOOR;
-        }
+        let mode = entry.mode();
+        (mode & libc::S_IFMT) == libc::S_IFDOOR
     }
-    
-    false 
+
+    #[cfg(not(any(target_os = "solaris", target_os = "illumos")))]
+    {
+        let _ = entry; // Silence unused variable warning on other OSes
+        false
+    }
 }
-fn is_exe(entry: &DirEntry) -> bool {
-    entry.metadata().map_or(false, |meta| {
-        meta.is_file() && (meta.permissions().mode() & 0o111) != 0
-    })
+
+fn is_exe(entry: &Metadata) -> bool {
+    #[cfg(unix)]
+    {
+        entry.is_file() && (entry.permissions().mode() & 0o111) != 0
+    }
+
+    #[cfg(not(unix))]
+    {
+        let _ = entry;
+        false
+    }
+}
+fn format_time(seconds: u64) -> String {
+    let now = Local::now();
+    let file_time = Local.timestamp_opt(seconds as i64, 0)
+        .single()
+        .unwrap_or_else(|| Local.timestamp_opt(0, 0).single().unwrap());
+
+    let six_months_in_seconds = 6 * 30 * 24 * 60 * 60; 
+    let time_difference = now.timestamp() - file_time.timestamp();
+
+    if time_difference < six_months_in_seconds && time_difference >= 0 {
+        file_time.format("%b %e %H:%M").to_string()
+    } else {
+        file_time.format("%b %e  %Y").to_string()
+    }
 }
