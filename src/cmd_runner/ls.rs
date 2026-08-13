@@ -1,66 +1,81 @@
-use std::{  fs::{DirEntry, Metadata}, os::unix::fs::{FileTypeExt, MetadataExt, PermissionsExt}, path::{self, Path, PathBuf}};
+use std::{
+    fs::Metadata,
+    os::unix::fs::{FileTypeExt, MetadataExt, PermissionsExt},
+    path::{Path, PathBuf},
+    time::UNIX_EPOCH,
+};
 use crate::models;
-use uzers::{get_user_by_uid, get_group_by_gid};
-use std::time::UNIX_EPOCH;
-use std::env;
-use chrono::{DateTime, Local, TimeZone, Datelike};
+use chrono::{DateTime, Local, TimeZone};
+use uzers::{get_group_by_gid, get_user_by_uid};
 
-struct File <'a> {
-  file:&'a Path,
-  formatted_output: String,
+struct File<'a> {
+    file: &'a Path,
+    formatted_output: String,
 }
 
-pub fn run(cmd : models::Ls) {
-  let entries = std::fs::read_dir(&cmd.path).unwrap();
-  let unfiltered_files = entries.map(|entry|entry.unwrap().path());
-  let mut files=Vec::new();
-  if !(cmd.all){
-    // i must change to_str cause it break when emoji
-    files=unfiltered_files.filter(|file|file.file_name().unwrap().to_string_lossy().starts_with(".")).collect();
-  }else{
-    files=unfiltered_files.collect();
-    let current_dir = PathBuf::from(".");
-    let parent_dir = PathBuf::from("..");
-    files.insert(0, current_dir);
-    files.insert(1, parent_dir);
+pub fn run(cmd: models::Ls) {
+    let entries = match std::fs::read_dir(&cmd.path) {
+        Ok(read_dir) => read_dir,
+        Err(_) => return,
+    };
 
-  }
-  let mut formatted=Vec::new();
-  if cmd.long{
-    formatted=files.iter().map(|path|{
-        
-      File{
-        file:&path,
-        formatted_output:long_format(&path),
-      }
-    }).collect();
-  }else{
-    formatted=files.iter().map(|path|{
-      File{
-        file:&path,
-        formatted_output:normal_format(&path),
-      }
-    }).collect();
-  }
-  if cmd.classify {
-      formatted=formatted.iter().map(|file|{
-        let mut formatted_output=(&file.formatted_output).to_string();
-        formatted_output.push_str(&classify(file.file));
-        File { file: file.file, formatted_output: formatted_output.to_string() }
-      }).collect();
-  }
-  let mut separetor=" ";
-  if cmd.long{
-   separetor="\n";
+    let unfiltered_files = entries.filter_map(|entry| entry.ok().map(|e| e.path()));
+    let mut files: Vec<PathBuf> = Vec::new();
 
-  }
-  for file in formatted{
-    print!("{}{}",file.formatted_output,separetor);
-  }
-  println!()
+    if !cmd.all {
+        files = unfiltered_files
+            .filter(|file| {
+                file.file_name()
+                    .map(|name| !name.to_string_lossy().starts_with('.'))
+                    .unwrap_or(true)
+            })
+            .collect();
+    } else {
+        files.push(PathBuf::from("."));
+        files.push(PathBuf::from(".."));
+        files.extend(unfiltered_files);
+    }
+
+    let mut formatted: Vec<File> = if cmd.long {
+        files
+            .iter()
+            .map(|path| File {
+                file: path,
+                formatted_output: long_format(path),
+            })
+            .collect()
+    } else {
+        files
+            .iter()
+            .map(|path| File {
+                file: path,
+                formatted_output: normal_format(path),
+            })
+            .collect()
+    };
+
+    if cmd.classify {
+        for file in &mut formatted {
+            file.formatted_output.push_str(&classify(file.file));
+        }
+    }
+
+    formatted.sort_by_key(|file: &File<'_>| file.file.to_string_lossy());
+
+    let separator = if cmd.long { "\n" } else { " " };
+
+    for file in formatted {
+        print!("{}{}", file.formatted_output, separator);
+    }
+    println!();
 }
+
 fn long_format(path: &Path) -> String {
-    let metadata = path.symlink_metadata().unwrap();
+    let metadata = match path.symlink_metadata() {
+        Ok(meta) => meta,
+        Err(_) => return path.to_string_lossy().into_owned(),
+    };
+
     let permissions = metadata.permissions();
 
     let type_char = if metadata.is_dir() {
@@ -107,9 +122,9 @@ fn long_format(path: &Path) -> String {
         .as_secs();
 
     let file_name = path
-    .file_name()
-    .map(|s| s.to_string_lossy())
-    .unwrap_or_else(|| path.to_string_lossy());
+        .file_name()
+        .map(|s| s.to_string_lossy())
+        .unwrap_or_else(|| path.to_string_lossy());
 
     format!(
         "{}{} {} {} {} {:>8} {} {}",
@@ -123,38 +138,39 @@ fn long_format(path: &Path) -> String {
         file_name
     )
 }
-fn normal_format(path: &Path)->String{
-    println!("{:?}",path);
-    match path.file_name(){
-        Some(file_name)=>file_name.to_string_lossy().into_owned(),
-        None=>".".to_string()
+
+fn normal_format(path: &Path) -> String {
+    match path.file_name() {
+        Some(file_name) => file_name.to_string_lossy().into_owned(),
+        None => ".".to_string(),
     }
-    
-    
 }
-fn classify(file_path : &Path)-> String{
-  let mut symbole="";
-  let metadata=file_path.symlink_metadata().unwrap();
-  if metadata.file_type().is_dir() {
-      symbole="/";
-  }else if metadata.file_type().is_fifo(){
-      symbole="|";
-      
-  }else if metadata.file_type().is_symlink() {
-      symbole="@";
-      
-  }else if metadata.file_type().is_socket() {
-      symbole="=";
-      
-  }else if is_door(&metadata) {
-      symbole=">";
-      
-  }else if is_exe(&metadata){
-      symbole="*";
-      
-  }
- symbole.to_string()
+
+fn classify(file_path: &Path) -> String {
+    let metadata = match file_path.symlink_metadata() {
+        Ok(meta) => meta,
+        Err(_) => return String::new(),
+    };
+
+    let symbol = if metadata.file_type().is_dir() {
+        "/"
+    } else if metadata.file_type().is_fifo() {
+        "|"
+    } else if metadata.file_type().is_symlink() {
+        "@"
+    } else if metadata.file_type().is_socket() {
+        "="
+    } else if is_door(&metadata) {
+        ">"
+    } else if is_exe(&metadata) {
+        "*"
+    } else {
+        ""
+    };
+
+    symbol.to_string()
 }
+
 fn is_door(entry: &Metadata) -> bool {
     #[cfg(any(target_os = "solaris", target_os = "illumos"))]
     {
@@ -164,7 +180,7 @@ fn is_door(entry: &Metadata) -> bool {
 
     #[cfg(not(any(target_os = "solaris", target_os = "illumos")))]
     {
-        let _ = entry; // Silence unused variable warning on other OSes
+        let _ = entry;
         false
     }
 }
@@ -181,13 +197,16 @@ fn is_exe(entry: &Metadata) -> bool {
         false
     }
 }
+
 fn format_time(seconds: u64) -> String {
     let now = Local::now();
-    let file_time = Local.timestamp_opt(seconds as i64, 0)
-        .single()
-        .unwrap_or_else(|| Local.timestamp_opt(0, 0).single().unwrap());
 
-    let six_months_in_seconds = 6 * 30 * 24 * 60 * 60; 
+    let file_time = match Local.timestamp_opt(seconds as i64, 0) {
+        chrono::LocalResult::Single(dt) => dt,
+        _ => DateTime::UNIX_EPOCH.into(),
+    };
+
+    let six_months_in_seconds = 6 * 30 * 24 * 60 * 60;
     let time_difference = now.timestamp() - file_time.timestamp();
 
     if time_difference < six_months_in_seconds && time_difference >= 0 {
