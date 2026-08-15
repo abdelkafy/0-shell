@@ -1,12 +1,7 @@
 use std::path::PathBuf;
 
 
-pub struct Ls{
-    pub all: bool,
-    pub long: bool,
-    pub classify: bool,
-    pub path: PathBuf,
-}
+
 
 //pub enum Rmflag{
 //    Recursive,
@@ -16,7 +11,7 @@ pub struct Ls{
 pub enum Command{
     Echo,
     Cd,
-    Ls (Ls),
+    Ls ,
     Pwd,
     Cat,
     Cp,
@@ -24,4 +19,5 @@ pub enum Command{
     Mv,
     Mkdir,
     Exit,
+    
 }

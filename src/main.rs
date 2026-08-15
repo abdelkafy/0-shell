@@ -3,6 +3,7 @@ mod models;
 mod cmd_manager;
 pub mod parser;
 use std::io::{self, Write};
+use crate::cmd_manager::executor::command_executor;
 use crate::models::Command;
 use crate::parser::parser::parser;
 
@@ -19,7 +20,9 @@ fn main() {
                 break;
             }
             Ok(_) => {
-               parser(&input)
+               match parser(&input)  {
+                   Ok((command,args))=>command_executor(command,args),
+               }
             }
             Err(err) => {
                 eprintln!("{err}");
