@@ -1,11 +1,10 @@
 
-use std::fmt::Error;
 
-use crate::{cmd_manager::managers::{ls_manager,pwd_manager}, models::{Command}};
-pub fn parser(input: &str) ->Result<(Command,Vec<String>),Err> {
+use crate::{ models::{Command}};
+pub fn parser(input: &str) ->Result<(Command,Vec<String>),String> {
     let trimmed = input.trim();
     if trimmed.is_empty() {
-        return Err("empty input")
+        return Err("empty input".to_string())
     }
 
     let tokens = trimmed.split_whitespace();
@@ -23,6 +22,6 @@ pub fn parser(input: &str) ->Result<(Command,Vec<String>),Err> {
         "mv" => Ok((Command::Mv,args)),
         "mkdir" => Ok((Command::Mkdir,args)),
         "exit" => Ok((Command::Exit,args)),
-        _ => Err("Command dont exist"),
+        _ => Err("Command dont exist".to_string()),
     }
 }

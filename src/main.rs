@@ -4,7 +4,6 @@ mod cmd_manager;
 pub mod parser;
 use std::io::{self, Write};
 use crate::cmd_manager::executor::command_executor;
-use crate::models::Command;
 use crate::parser::parser::parser;
 
 fn main() {
@@ -22,6 +21,7 @@ fn main() {
             Ok(_) => {
                match parser(&input)  {
                    Ok((command,args))=>command_executor(command,args),
+                   Err(str)=>print!("{}",str),
                }
             }
             Err(err) => {
