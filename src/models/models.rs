@@ -20,7 +20,7 @@ pub enum Command{
     Pwd,
     Cat,
     Cp,
-    Rm ,
+    Rm,
     Mv,
     Mkdir,
     Exit,
