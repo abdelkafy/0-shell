@@ -1,4 +1,4 @@
-use crate::{cmd_runner::{ls, pwd}, models::Ls};
+use crate::{cmd_runner::{cat, cd, cp, echo, ls, mkdir, mv, pwd, rm}, models::Ls};
 use std::path::PathBuf;
 
 pub fn ls_manager(args: Vec<String>) {
@@ -57,4 +57,25 @@ pub fn ls_manager(args: Vec<String>) {
 
 pub fn pwd_manager() {
     pwd::run();
+}
+pub fn cat_manager(args: Vec<String>){
+    cat::run(args[0].as_str())
+}
+pub fn cd_manager(args: Vec<String>){
+    cd::run(args[0].as_str());
+}
+pub fn cp_manager(args: Vec<String>){
+   cp::run(args[0].as_str(),args[1].as_str());
+}
+pub fn echo_manager(args: Vec<String>){
+    echo::run(args);
+}
+pub fn mkdir_manager(args: Vec<String>){
+    mkdir::run(args);
+}
+pub fn rm_manager(args: Vec<String>){
+    rm::run(args);
+}
+pub fn mv_manager(args: Vec<String>){
+    mv::run(args);
 }

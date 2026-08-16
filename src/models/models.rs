@@ -8,11 +8,6 @@ pub struct Ls{
 }
 
 
-//pub enum Rmflag{
-//    Recursive,
-//    Normal
-//}
-
 pub enum Command{
     Echo,
     Cd,
