@@ -15,7 +15,7 @@ pub fn parser(input: &str) -> Result<Command, String> {
             Ok(Command::Echo(args))
         }
         "cd" => {
-            let path = tokens.next().ok_or("cd: missing operand")?;
+            let path = tokens.next().unwrap_or("~");
             Ok(Command::Cd(path.to_string()))
         }
         "ls" => Ok(Command::Ls(Lsflag::All)),
