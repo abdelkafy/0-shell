@@ -25,3 +25,4 @@ pub fn parser(input: &str) ->Result<(Command,Vec<String>),String> {
         _ => Err("Command dont exist".to_string()),
     }
 }
+
