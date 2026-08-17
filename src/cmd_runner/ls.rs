@@ -106,10 +106,7 @@ pub fn ls(files:Vec<PathBuf>,cmd_flags:Flags,is_dir:bool){
                 }else if index==1 && cmd_flags.all && is_dir{
                     "..".to_string()
                 }else{
-                    match  path.file_name() {
-                       Some(value)=>value.to_string_lossy().into_owned(),
-                       None=>"".to_string(),
-                    }
+                    path.to_string_lossy().into_owned()
                 };
                 File {
                 file: path,
@@ -126,10 +123,7 @@ pub fn ls(files:Vec<PathBuf>,cmd_flags:Flags,is_dir:bool){
                 }else if index==1 && cmd_flags.all && is_dir{
                     "..".to_string()
                 }else{
-                    match  path.file_name() {
-                       Some(value)=>value.to_string_lossy().into_owned(),
-                       None=>"".to_string(),
-                    }
+                   path.to_string_lossy().into_owned()
                 };
                  File {
                 file: path,
