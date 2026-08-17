@@ -1,5 +1,5 @@
 use crate::models::models::Flags;
-use crate::models::{self, Ls};
+use crate::models::{self};
 use jiff::tz::TimeZone;
 use jiff::{SignedDuration, Timestamp};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -188,10 +188,16 @@ pub fn ls(files: Vec<PathBuf>, cmd_flags: Flags, is_dir: bool) {
         }
     });
 
-    let separator = if cmd_flags.long { "\n" } else { " " };
 
     for file in formatted {
-        print!("{}{}", file.formatted_output, separator);
+        if cmd_flags.long {
+            println!("{}", file.formatted_output);
+        } else {
+            print!("{}  ", file.formatted_output);
+        }
+    }
+    if !cmd_flags.long {
+        println!();
     }
 }
 
