@@ -1,13 +1,13 @@
+use crate::models;
+use jiff::tz::TimeZone;
+use jiff::{SignedDuration, Timestamp};
+use std::time::{SystemTime, UNIX_EPOCH};
 use std::{
     fs::Metadata,
     os::unix::fs::{FileTypeExt, MetadataExt, PermissionsExt},
     path::{Path, PathBuf},
 };
-use crate::models;
 use uzers::{get_group_by_gid, get_user_by_uid};
-use std::time::{SystemTime, UNIX_EPOCH};
-use jiff::{SignedDuration, Timestamp};
-use jiff::tz::TimeZone;
 struct File<'a> {
     file: &'a Path,
     formatted_output: String,
@@ -37,20 +37,23 @@ pub fn run(cmd: models::Ls) {
     }
 
     let mut formatted: Vec<File> = if cmd.long {
-         let size_width = std::cmp::max(
-     8,
-     files
-        .iter()
-        .filter_map(|path| path.symlink_metadata().ok())
-        .map(|metadata| metadata.len().to_string().len())
-        .max()
-        .unwrap_or(1),
+        let max_size_width = std::cmp::max(
+            8,
+            files
+                .iter()
+                .filter_map(|path| path.symlink_metadata().ok())
+                .map(|metadata| metadata.len().to_string().len())
+                .max()
+                .unwrap_or(1),
         );
+        let max_links_width=
+        let max_owner_width=
+        let max_group_width=
         files
             .iter()
             .map(|path| File {
                 file: path,
-                formatted_output: long_format(path,size_width),
+                formatted_output: long_format(path, size_width),
             })
             .collect()
     } else {
@@ -65,7 +68,8 @@ pub fn run(cmd: models::Ls) {
 
     if cmd.classify {
         for file in &mut formatted {
-            file.formatted_output.push_str(&classify(file.file,cmd.long));
+            file.formatted_output
+                .push_str(&classify(file.file, cmd.long));
         }
     }
 
@@ -79,7 +83,7 @@ pub fn run(cmd: models::Ls) {
     println!();
 }
 
-fn long_format(path: &Path,size_width:usize) -> String {
+fn long_format(path: &Path, size_width: usize) -> String {
     let metadata = match path.symlink_metadata() {
         Ok(meta) => meta,
         Err(_) => return path.to_string_lossy().into_owned(),
@@ -87,14 +91,24 @@ fn long_format(path: &Path,size_width:usize) -> String {
 
     let permissions = metadata.permissions();
 
-    let type_char = if metadata.is_dir() {
-        'd'
-    } else if metadata.is_symlink() {
-        'l'
-    } else {
-        '-'
+    let type_char = {
+        let ft = metadata.file_type();
+        if ft.is_dir() {
+            'd'
+        } else if ft.is_symlink() {
+            'l'
+        } else if ft.is_fifo() {
+            'p'
+        } else if ft.is_socket() {
+            's'
+        } else if ft.is_char_device() {
+            'c'
+        } else if ft.is_block_device() {
+            'b'
+        } else {
+            '-'
+        }
     };
-
     let mode = permissions.mode();
     let perm_str = format!(
         "{}{}{}{}{}{}{}{}{}",
@@ -121,23 +135,30 @@ fn long_format(path: &Path,size_width:usize) -> String {
         None => metadata.gid().to_string(),
     };
 
-    let size = metadata.len();
+    let size_or_device = if metadata.file_type().is_char_device() || metadata.file_type().is_block_device() {
+    let rdev = metadata.rdev();
+    let major = (rdev >> 8) & 0xfff;
+    let minor = (rdev & 0xff) | ((rdev >> 12) & 0xffffff00);
+    format!("{:>3}, {:>3}", major, minor)
+    } else {
+    format!("{:>size_width$}", metadata.len())
+    };
 
-   let modified_at = metadata.modified().unwrap_or(UNIX_EPOCH);
+    let modified_at = metadata.modified().unwrap_or(UNIX_EPOCH);
 
     let file_name = path
         .file_name()
         .map(|s| s.to_string_lossy())
         .unwrap_or_else(|| path.to_string_lossy());
-   
+
     format!(
-        "{}{} {} {} {} {:>size_width$} {} {}",
+        "{}{} {} {} {} {} {} {}",
         type_char,
         perm_str,
         hard_links_pointing,
         owner_name,
         group_name,
-        size,
+        size_or_device,
         format_time(modified_at),
         file_name
     )
@@ -179,9 +200,8 @@ fn classify(file_path: &Path, long: bool) -> String {
     symbol
 }
 
-
 fn is_exe(entry: &Metadata) -> bool {
-        entry.is_file() && (entry.permissions().mode() & 0o111) != 0
+    entry.is_file() && (entry.permissions().mode() & 0o111) != 0
 }
 
 fn format_time(time: SystemTime) -> String {
