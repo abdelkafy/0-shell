@@ -60,8 +60,9 @@ pub fn ls_manager(args: Vec<String>) {
             }
         }
     }
-    let is_empty = valid_files.is_empty();
-    ls::ls(
+    let files_is_empty = valid_files.is_empty();
+    if !files_is_empty{
+         ls::ls(
         valid_files,
         Flags {
             all,
@@ -70,8 +71,10 @@ pub fn ls_manager(args: Vec<String>) {
         },
         false,
     );
-
-    if valid_paths.is_empty() && is_empty && !invalid_input_found {
+    println!()
+    }
+   
+    if valid_paths.is_empty() && files_is_empty && !invalid_input_found {
         ls::run(Ls {
             flags: Flags {
                 all,

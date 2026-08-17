@@ -193,7 +193,6 @@ pub fn ls(files: Vec<PathBuf>, cmd_flags: Flags, is_dir: bool) {
     for file in formatted {
         print!("{}{}", file.formatted_output, separator);
     }
-    println!();
 }
 
 fn long_format(path: &Path, virtual_path: String, max_sizes: MaxSizes) -> String {
