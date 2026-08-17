@@ -34,21 +34,25 @@ pub fn ls_manager(args: Vec<String>) {
 
             let mut path = PathBuf::from(&arg);
 
-            if arg == "~" {
-                path = match dirs::home_dir() {
-                    Some(value) => value,
-                    None => PathBuf::from(&arg),
+            if arg.starts_with("~") {
+                let rest_of_path = arg[1..].trim_matches('/');
+
+                if let Some(home) = dirs::home_dir() {
+                    path = home.join(rest_of_path);
+                }
+                if let Some(home) = dirs::home_dir() {
+                    path = home.join(rest_of_path);
                 }
             }
 
             if path.exists() {
                 if path.is_dir() {
                     valid_paths.push(path);
-                } else if path.is_file() {
+                } else {
                     valid_files.push(path);
                 }
             } else {
-               eprintln!("ls: {}: No such file or directory", arg);
+                eprintln!("ls: {}: No such file or directory", arg);
                 invalid_input_found = true;
             }
         }
