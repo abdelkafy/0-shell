@@ -8,6 +8,15 @@ use std::{
     path::{Path, PathBuf},
 };
 use uzers::{get_group_by_gid, get_user_by_uid};
+
+#[derive(Clone, Copy)]
+struct MaxSizes{
+    max_size_width:usize,
+        max_links_width:usize
+        ,max_owner_width:usize
+        ,max_group_width:usize
+    }
+
 struct File<'a> {
     file: &'a Path,
     formatted_output: String,
@@ -46,14 +55,48 @@ pub fn run(cmd: models::Ls) {
                 .max()
                 .unwrap_or(1),
         );
-        let max_links_width=
-        let max_owner_width=
-        let max_group_width=
+        let max_links_width = std::cmp::max(
+            3,
+            files
+                .iter()
+                .filter_map(|p| p.symlink_metadata().ok())
+                .map(|m| m.nlink().to_string().len())
+                .max()
+                .unwrap_or(1),
+        );
+
+        let max_owner_width = std::cmp::max(
+            8,
+            files
+                .iter()
+                .filter_map(|p| p.symlink_metadata().ok())
+                .map(|m| {
+                    get_user_by_uid(m.uid())
+                        .map(|u| u.name().to_string_lossy().len())
+                        .unwrap_or_else(|| m.uid().to_string().len())
+                })
+                .max()
+                .unwrap_or(1),
+        );
+
+        let max_group_width = std::cmp::max(
+            8,
+            files
+                .iter()
+                .filter_map(|p| p.symlink_metadata().ok())
+                .map(|m| {
+                    get_group_by_gid(m.gid())
+                        .map(|g| g.name().to_string_lossy().len())
+                        .unwrap_or_else(|| m.gid().to_string().len())
+                })
+                .max()
+                .unwrap_or(1),
+        );
         files
             .iter()
             .map(|path| File {
                 file: path,
-                formatted_output: long_format(path, size_width),
+                formatted_output: long_format(path, MaxSizes{max_size_width,max_links_width,max_owner_width,max_group_width}),
             })
             .collect()
     } else {
@@ -83,7 +126,7 @@ pub fn run(cmd: models::Ls) {
     println!();
 }
 
-fn long_format(path: &Path, size_width: usize) -> String {
+fn long_format(path: &Path, max_sizes: MaxSizes) -> String {
     let metadata = match path.symlink_metadata() {
         Ok(meta) => meta,
         Err(_) => return path.to_string_lossy().into_owned(),
@@ -135,14 +178,16 @@ fn long_format(path: &Path, size_width: usize) -> String {
         None => metadata.gid().to_string(),
     };
 
-    let size_or_device = if metadata.file_type().is_char_device() || metadata.file_type().is_block_device() {
-    let rdev = metadata.rdev();
-    let major = (rdev >> 8) & 0xfff;
-    let minor = (rdev & 0xff) | ((rdev >> 12) & 0xffffff00);
-    format!("{:>3}, {:>3}", major, minor)
-    } else {
-    format!("{:>size_width$}", metadata.len())
-    };
+    let size_or_device =
+        if metadata.file_type().is_char_device() || metadata.file_type().is_block_device() {
+            let rdev = metadata.rdev();
+            let major = (rdev >> 8) & 0xfff;
+            let minor = (rdev & 0xff) | ((rdev >> 12) & 0xffffff00);
+            format!("{:>3}, {:>3}", major, minor)
+        } else {
+            let max_width=max_sizes.max_size_width;
+            format!("{:>max_width$}", metadata.len())
+        };
 
     let modified_at = metadata.modified().unwrap_or(UNIX_EPOCH);
 
@@ -150,18 +195,21 @@ fn long_format(path: &Path, size_width: usize) -> String {
         .file_name()
         .map(|s| s.to_string_lossy())
         .unwrap_or_else(|| path.to_string_lossy());
+            let max_links_width=max_sizes.max_links_width;
+            let max_owner_width=max_sizes.max_owner_width;
+            let max_group_width=max_sizes.max_group_width;
 
     format!(
-        "{}{} {} {} {} {} {} {}",
-        type_char,
-        perm_str,
-        hard_links_pointing,
-        owner_name,
-        group_name,
-        size_or_device,
-        format_time(modified_at),
-        file_name
-    )
+    "{}{} {:>max_links_width$} {:<max_owner_width$} {:<max_group_width$} {} {} {}",
+    type_char,
+    perm_str,
+    hard_links_pointing,
+    owner_name,
+    group_name,
+    size_or_device, // size_or_device already contains size_width formatting
+    format_time(modified_at),
+    file_name,
+)
 }
 
 fn normal_format(path: &Path) -> String {
