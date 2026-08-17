@@ -1,6 +1,5 @@
 use crate::{
-    cmd_runner::{cat, cd, cp, echo, ls, mkdir, mv, pwd, rm},
-    models::Ls,
+    cmd_runner::{cat, cd, cp, echo, ls, mkdir, mv, pwd, rm}, models::{Ls, models::Flags},
 };
 use std::path::PathBuf;
 
@@ -11,6 +10,7 @@ pub fn ls_manager(args: Vec<String>) {
     let mut invalid_input_found = false;
     let mut path_args_count = 0;
     let mut valid_paths: Vec<PathBuf> = Vec::new();
+    let mut valid_files: Vec<PathBuf> = Vec::new();
     let mut accept_flags=true;
     for arg in args {
         if arg=="--"{
@@ -41,25 +41,33 @@ pub fn ls_manager(args: Vec<String>) {
             }
 
             if path.exists() {
-                valid_paths.push(path);
+                if path.is_dir(){
+                    valid_paths.push(path);
+                }else if path.is_file(){
+                    valid_files.push(path);
+                }
             } else {
                 println!("ls: {}: No such file or directory", arg);
                 invalid_input_found = true;
             }
         }
     }
-
+    
+        ls::ls(valid_files, Flags{
+            all,long,classify
+        },false);
+    
+    
     if valid_paths.is_empty() && !invalid_input_found {
         ls::run(Ls {
-            all,
-            long,
-            classify,
+           flags: Flags{
+            all,long,classify
+        },
             path: PathBuf::from("."),
         });
         return;
     }
 
-    valid_paths.sort();
 
     let show_header = path_args_count > 1;
 
@@ -71,9 +79,9 @@ pub fn ls_manager(args: Vec<String>) {
             println!("{}:", path.display());
         }
         ls::run(Ls {
-            all,
-            long,
-            classify,
+flags:Flags{
+            all,long,classify
+        },
             path: path.clone(),
         });
     }

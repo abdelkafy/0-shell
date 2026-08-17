@@ -1,4 +1,5 @@
-use crate::models;
+use crate::models::models::Flags;
+use crate::models::{self, Ls};
 use jiff::tz::TimeZone;
 use jiff::{SignedDuration, Timestamp};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -30,7 +31,7 @@ pub fn run(cmd: models::Ls) {
     let unfiltered_files = entries.filter_map(|entry| entry.ok().map(|e| e.path()));
     let mut files: Vec<PathBuf> = Vec::new();
 
-    if !cmd.all {
+    if !cmd.flags.all {
         files = unfiltered_files
             .filter(|file| {
                 file.file_name()
@@ -44,7 +45,12 @@ pub fn run(cmd: models::Ls) {
         files.extend(unfiltered_files);
     }
 
-    let mut formatted: Vec<File> = if cmd.long {
+    ls(files, cmd.flags,true);
+}
+
+pub fn ls(files:Vec<PathBuf>,cmd_flags:Flags,is_dir:bool){
+
+    let mut formatted: Vec<File> = if cmd_flags.long {
         let max_size_width = std::cmp::max(
             8,
             files
@@ -95,9 +101,9 @@ pub fn run(cmd: models::Ls) {
             .iter()
             .enumerate()
             .map(|(index, path)| {
-               let  virtual_path=  if index==0 && cmd.all {
+               let  virtual_path=  if index==0 && cmd_flags.all && is_dir {
                     ".".to_string()
-                }else if index==1 && cmd.all{
+                }else if index==1 && cmd_flags.all && is_dir{
                     "..".to_string()
                 }else{
                     match  path.file_name() {
@@ -115,9 +121,9 @@ pub fn run(cmd: models::Ls) {
             .iter()
             .enumerate()
             .map(|(index, path)| {
-               let  virtual_path=  if index==0 && cmd.all{
+               let  virtual_path=  if index==0 && cmd_flags.all && is_dir{
                     ".".to_string()
-                }else if index==1 && cmd.all{
+                }else if index==1 && cmd_flags.all && is_dir{
                     "..".to_string()
                 }else{
                     match  path.file_name() {
@@ -132,16 +138,16 @@ pub fn run(cmd: models::Ls) {
             .collect()
     };
 
-    if cmd.classify {
+    if cmd_flags.classify {
         for file in &mut formatted {
             file.formatted_output
-                .push_str(&classify(file.file, cmd.long));
+                .push_str(&classify(file.file, cmd_flags.long));
         }
     }
 
     formatted.sort_by_key(|file: &File<'_>| file.file.to_string_lossy());
 
-    let separator = if cmd.long { "\n" } else { " " };
+    let separator = if cmd_flags.long { "\n" } else { " " };
 
     for file in formatted {
         print!("{}{}", file.formatted_output, separator);

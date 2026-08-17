@@ -1,10 +1,13 @@
 use std::path::PathBuf;
 
 pub struct Ls{
-    pub all: bool,
+    pub flags:Flags,
+    pub path: PathBuf,
+}
+pub struct  Flags{
+pub all: bool,
     pub long: bool,
     pub classify: bool,
-    pub path: PathBuf,
 }
 
 
