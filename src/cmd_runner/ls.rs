@@ -2,12 +2,12 @@ use std::{
     fs::Metadata,
     os::unix::fs::{FileTypeExt, MetadataExt, PermissionsExt},
     path::{Path, PathBuf},
-    time::UNIX_EPOCH,
 };
 use crate::models;
-use chrono::{DateTime, Local, TimeZone};
 use uzers::{get_group_by_gid, get_user_by_uid};
-
+use std::time::{SystemTime, UNIX_EPOCH};
+use jiff::{SignedDuration, Timestamp};
+use jiff::tz::TimeZone;
 struct File<'a> {
     file: &'a Path,
     formatted_output: String,
@@ -37,11 +37,20 @@ pub fn run(cmd: models::Ls) {
     }
 
     let mut formatted: Vec<File> = if cmd.long {
+         let size_width = std::cmp::max(
+     8,
+     files
+        .iter()
+        .filter_map(|path| path.symlink_metadata().ok())
+        .map(|metadata| metadata.len().to_string().len())
+        .max()
+        .unwrap_or(1),
+        );
         files
             .iter()
             .map(|path| File {
                 file: path,
-                formatted_output: long_format(path),
+                formatted_output: long_format(path,size_width),
             })
             .collect()
     } else {
@@ -70,7 +79,7 @@ pub fn run(cmd: models::Ls) {
     println!();
 }
 
-fn long_format(path: &Path) -> String {
+fn long_format(path: &Path,size_width:usize) -> String {
     let metadata = match path.symlink_metadata() {
         Ok(meta) => meta,
         Err(_) => return path.to_string_lossy().into_owned(),
@@ -114,20 +123,15 @@ fn long_format(path: &Path) -> String {
 
     let size = metadata.len();
 
-    let modified_at = metadata
-        .modified()
-        .unwrap_or(UNIX_EPOCH)
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs();
+   let modified_at = metadata.modified().unwrap_or(UNIX_EPOCH);
 
     let file_name = path
         .file_name()
         .map(|s| s.to_string_lossy())
         .unwrap_or_else(|| path.to_string_lossy());
-
+   
     format!(
-        "{}{} {} {} {} {:>8} {} {}",
+        "{}{} {} {} {} {:>size_width$} {} {}",
         type_char,
         perm_str,
         hard_links_pointing,
@@ -198,20 +202,22 @@ fn is_exe(entry: &Metadata) -> bool {
     }
 }
 
-fn format_time(seconds: u64) -> String {
-    let now = Local::now();
-
-    let file_time = match Local.timestamp_opt(seconds as i64, 0) {
-        chrono::LocalResult::Single(dt) => dt,
-        _ => DateTime::UNIX_EPOCH.into(),
+fn format_time(time: SystemTime) -> String {
+    let file_time = match Timestamp::try_from(time) {
+        Ok(timestamp) => timestamp,
+        Err(_) => Timestamp::UNIX_EPOCH,
     };
 
-    let six_months_in_seconds = 6 * 30 * 24 * 60 * 60;
-    let time_difference = now.timestamp() - file_time.timestamp();
+    let now = Timestamp::now();
+    let age = file_time.duration_until(now);
 
-    if time_difference < six_months_in_seconds && time_difference >= 0 {
-        file_time.format("%b %e %H:%M").to_string()
+    let six_months = SignedDuration::from_secs(180 * 24 * 60 * 60);
+
+    let local = file_time.to_zoned(TimeZone::system());
+
+    if age >= SignedDuration::ZERO && age < six_months {
+        local.strftime("%b %e %H:%M").to_string()
     } else {
-        file_time.format("%b %e  %Y").to_string()
+        local.strftime("%b %e  %Y").to_string()
     }
 }
