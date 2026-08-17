@@ -52,13 +52,13 @@ pub fn ls_manager(args: Vec<String>) {
             }
         }
     }
-    
+        let is_empty=valid_files.is_empty();
         ls::ls(valid_files, Flags{
             all,long,classify
         },false);
     
     
-    if valid_paths.is_empty() && !invalid_input_found {
+    if valid_paths.is_empty() && is_empty && !invalid_input_found {
         ls::run(Ls {
            flags: Flags{
             all,long,classify
