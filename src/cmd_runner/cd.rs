@@ -1,57 +1,66 @@
+use crate::errors::format_error;
+use crate::models::ShellPath;
 use std::env;
-use std::io::ErrorKind;
 use std::path::PathBuf;
 
-pub fn run(args: Vec<String>) {
-    let mut end_of_options = false;
-    let mut path: Option<String> = None;
-
-    for arg in args {
-        if !end_of_options && arg == "--" {
-            end_of_options = true;
-            continue;
-        }
-
-        if !end_of_options && arg.starts_with('-') {
-            eprintln!("cd: invalid option: {}", arg);
-            return;
-        }
-
-        if path.is_some() {
-            eprintln!("cd: too many arguments");
-            return;
-        }
-
-        path = Some(arg);
+pub fn run(args: Vec<String>, shell_path: &mut ShellPath) {
+    if args.len() > 1 {
+        eprintln!("cd: too many arguments");
+        return;
     }
 
-    let path = path.unwrap_or_else(|| "~".to_string());
-    let target = expand_home(&path);
+    let target = match args.first().map(String::as_str) {
+        // cd
+        None => match dirs::home_dir() {
+            Some(home) => home,
+            None => {
+                eprintln!("cd: HOME not set");
+                return;
+            }
+        },
 
-    if let Err(err) = env::set_current_dir(&target) {
-        let message = match err.kind() {
-            ErrorKind::NotFound => "no such file or directory",
-            ErrorKind::PermissionDenied => "permission denied",
-            ErrorKind::NotADirectory => "not a directory",
-            _ => "unknown error",
-        };
+        // cd ~
+        Some("~") => match dirs::home_dir() {
+            Some(home) => home,
+            None => {
+                eprintln!("cd: HOME not set");
+                return;
+            }
+        },
 
-        eprintln!("cd: {}: {}", message, path);
-    }
-}
+        // cd -
+        Some("-") => shell_path.previous.clone(),
 
-fn expand_home(path: &str) -> PathBuf {
-    if path == "~" {
-        return env::var("HOME")
-            .map(PathBuf::from)
-            .unwrap_or_else(|_| PathBuf::from(path));
-    }
+        // cd <path>
+        Some(path) => PathBuf::from(path),
+    };
 
-    if let Some(rest) = path.strip_prefix("~/") {
-        if let Ok(home) = env::var("HOME") {
-            return PathBuf::from(home).join(rest);
+    let old_current = shell_path.current.clone();
+
+    match env::set_current_dir(&target) {
+        Ok(_) => {
+            shell_path.previous = old_current;
+
+            shell_path.current = match env::current_dir() {
+                Ok(path) => path,
+                Err(err) => {
+                    eprintln!("cd: {}", format_error(&err));
+                    return;
+                }
+            };
+
+            // BusyBox: cd - prints the new directory
+            if args.first().map(String::as_str) == Some("-") {
+                println!("{}", shell_path.current.display());
+            }
+        }
+
+        Err(err) => {
+            eprintln!(
+                "cd: {}: {}",
+                target.display(),
+                format_error(&err)
+            );
         }
     }
-
-    PathBuf::from(path)
 }

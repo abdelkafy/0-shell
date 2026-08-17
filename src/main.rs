@@ -1,12 +1,19 @@
 mod cmd_runner;
 mod models;
 mod cmd_manager;
+mod errors;
+
 pub mod parser;
+
 use std::io::{self, Write};
+
 use crate::cmd_manager::executor::command_executor;
+use crate::models::ShellPath;
 use crate::parser::parser::parser;
 
 fn main() {
+    let mut shell_path = ShellPath::new();
+
     loop {
         print_prompt();
         io::stdout().flush().unwrap();
@@ -20,38 +27,13 @@ fn main() {
             }
 
             Ok(_) => {
-                while has_unclosed_quotes(&input) {
-                    print!("> ");
-                    io::stdout().flush().unwrap();
-
-                    let mut next_line = String::new();
-
-                    match io::stdin().read_line(&mut next_line) {
-                        Ok(0) => {
-                            println!();
-                            break;
-                        }
-
-                        Ok(_) => {
-                            input.push_str(&next_line);
-                        }
-
-                        Err(err) => {
-                            eprintln!("{err}");
-                            break;
-                        }
-                    }
-                }
-
                 match parser(&input) {
                     Ok((command, args)) => {
-                        command_executor(command, args);
+                        command_executor(command, args, &mut shell_path);
                     }
 
                     Err(err) => {
-                        if err != "empty input" {
-                            eprintln!("{err}");
-                        }
+                        print!("{}", err);
                     }
                 }
             }
@@ -62,6 +44,10 @@ fn main() {
             }
         }
     }
+}
+
+fn needs_more_input(input: &str) -> bool {
+    has_unclosed_quotes(input) || ends_with_unescaped_backslash(input)
 }
 
 fn has_unclosed_quotes(input: &str) -> bool {
@@ -90,12 +76,25 @@ fn has_unclosed_quotes(input: &str) -> bool {
     single_quote || double_quote
 }
 
+fn ends_with_unescaped_backslash(input: &str) -> bool {
+    let line = input.trim_end_matches(['\n', '\r']);
 
-use std::env;
+    let mut count = 0;
+
+    for c in line.chars().rev() {
+        if c == '\\' {
+            count += 1;
+        } else {
+            break;
+        }
+    }
+
+    count % 2 == 1
+}
 
 fn print_prompt() {
-    let current = env::current_dir().unwrap();
-    let home = env::var("HOME").unwrap_or_default();
+    let current = std::env::current_dir().unwrap();
+    let home = std::env::var("HOME").unwrap_or_default();
 
     let path = current
         .display()

@@ -23,3 +23,20 @@ pub enum Command {
     Mkdir,
     Exit,
 }
+
+
+pub struct ShellPath {
+    pub current: PathBuf,
+    pub previous: PathBuf,
+}
+
+impl ShellPath {
+    pub fn new() -> Self {
+        let current = std::env::current_dir().unwrap();
+
+        Self {
+            current: current.clone(),
+            previous: current,
+        }
+    }
+}

@@ -31,22 +31,12 @@ fn tokenize(input: &str) -> Result<Vec<String>, String> {
 
     let mut single_quote = false;
     let mut double_quote = false;
-    let mut escaped = false;
+    let mut token_started = false;
 
-    for c in input.chars() {
-        // Backslash
-        if escaped {
-            current.push(c);
-            escaped = false;
-            continue;
-        }
+    let mut chars = input.chars().peekable();
 
-        if c == '\\' && !single_quote {
-            escaped = true;
-            continue;
-        }
+    while let Some(c) = chars.next() {
 
-        // Inside single quote
         if single_quote {
             if c == '\'' {
                 single_quote = false;
@@ -57,43 +47,117 @@ fn tokenize(input: &str) -> Result<Vec<String>, String> {
             continue;
         }
 
-        // Inside double quote
+
         if double_quote {
-            if c == '"' {
-                double_quote = false;
-            } else {
-                // IMPORTANT:
-                // spaces/newlines are added to the SAME token
-                current.push(c);
+            match c {
+                '"' => {
+                    double_quote = false;
+                }
+
+                '\\' => {
+                    match chars.peek() {
+                        Some('$') | Some('`') | Some('"') | Some('\\') => {
+                            current.push(chars.next().unwrap());
+                        }
+
+                        Some('\n') => {
+                            chars.next();
+                        }
+
+                        Some('\r') => {
+                            chars.next();
+
+                            if chars.peek() == Some(&'\n') {
+                                chars.next();
+                            }
+                        }
+
+                        Some(_) | None => {
+                            current.push('\\');
+                        }
+                    }
+                }
+
+                _ => {
+                    current.push(c);
+                }
             }
 
             continue;
         }
 
-        // Outside quotes
         match c {
             '\'' => {
                 single_quote = true;
+                token_started = true;
             }
 
             '"' => {
                 double_quote = true;
+                token_started = true;
             }
 
-            ' ' | '\t' | '\n' => {
-                if !current.is_empty() {
+
+            '#'
+                if !token_started
+                    || current
+                        .chars()
+                        .last()
+                        .map(|c| c.is_whitespace())
+                        .unwrap_or(false) =>
+            {
+                while let Some(next) = chars.next() {
+                    if next == '\n' {
+                        break;
+                    }
+                }
+
+                if token_started {
                     tokens.push(std::mem::take(&mut current));
+                    token_started = false;
+                }
+
+                break;
+            }
+
+            '\\' => {
+                token_started = true;
+
+                match chars.peek() {
+                    Some('\n') => {
+                        chars.next();
+                    }
+
+                    Some('\r') => {
+                        chars.next();
+
+                        if chars.peek() == Some(&'\n') {
+                            chars.next();
+                        }
+                    }
+
+                    Some(_) => {
+                        current.push(chars.next().unwrap());
+                    }
+
+                    None => {
+                        current.push('\\');
+                    }
+                }
+            }
+
+            ' ' | '\t' | '\n' | '\r' => {
+                if token_started {
+                    tokens.push(std::mem::take(&mut current));
+                    token_started = false;
                 }
             }
 
             _ => {
+                token_started = true;
                 current.push(c);
             }
         }
-    }
-
-    if escaped {
-        current.push('\\');
     }
 
     if single_quote {
@@ -104,7 +168,7 @@ fn tokenize(input: &str) -> Result<Vec<String>, String> {
         return Err("sh: unmatched double quote".to_string());
     }
 
-    if !current.is_empty() {
+    if token_started {
         tokens.push(current);
     }
 
