@@ -27,7 +27,7 @@ pub enum Command {
 
 pub struct ShellPath {
     pub current: PathBuf,
-    pub previous: PathBuf,
+    pub previous: Option<PathBuf>,
 }
 
 impl ShellPath {
@@ -36,7 +36,7 @@ impl ShellPath {
 
         Self {
             current: current.clone(),
-            previous: current,
+            previous: Some(current),
         }
     }
 }

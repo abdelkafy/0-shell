@@ -5,49 +5,182 @@ mod errors;
 
 pub mod parser;
 
-use std::io::{self, Write};
-
 use crate::cmd_manager::executor::command_executor;
 use crate::models::ShellPath;
 use crate::parser::parser::parser;
 
+use crossterm::{
+    cursor,
+    event::{self, Event, KeyCode, KeyModifiers},
+    execute,
+    terminal::{
+        disable_raw_mode,
+        enable_raw_mode,
+        Clear,
+        ClearType,
+    },
+};
+
+use std::io::{self, Write};
+
 fn main() {
+    enable_raw_mode().unwrap();
+
     let mut shell_path = ShellPath::new();
+    let mut input = String::new();
+
+    print_prompt();
 
     loop {
-        print_prompt();
-        io::stdout().flush().unwrap();
+        match event::read() {
+            Ok(Event::Key(key)) => {
 
-        let mut input = String::new();
 
-        match io::stdin().read_line(&mut input) {
-            Ok(0) => {
-                println!();
-                break;
-            }
+                if key.code == KeyCode::Char('c')
+                    && key.modifiers.contains(KeyModifiers::CONTROL)
+                {
+                    input.clear();
 
-            Ok(_) => {
-                match parser(&input) {
-                    Ok((command, args)) => {
-                        command_executor(command, args, &mut shell_path);
+                    print!("^C\r\n");
+                    print_prompt();
+
+                    continue;
+                }
+
+
+                if key.code == KeyCode::Char('d')
+                    && key.modifiers.contains(KeyModifiers::CONTROL)
+                {
+                    if input.is_empty() {
+                        break;
                     }
 
-                    Err(err) => {
-                        print!("{}", err);
+                    input.clear();
+
+                    print!("\r\x1b[2K");
+                    print_prompt();
+
+                    continue;
+                }
+
+
+                match key.code {
+
+
+                    KeyCode::Enter => {
+                        print!("\r\n");
+                        io::stdout().flush().unwrap();
+
+
+                        if needs_more_input(&input) {
+                            input.push('\n');
+
+                            print!("> ");
+                            io::stdout().flush().unwrap();
+
+                            continue;
+                        }
+
+                        let command_input = input.clone();
+
+                        input.clear();
+
+                        if !command_input.trim().is_empty() {
+
+                            disable_raw_mode().unwrap();
+
+                            match parser(&command_input) {
+                                Ok((command, args)) => {
+                                    command_executor(
+                                        command,
+                                        args,
+                                        &mut shell_path,
+                                    );
+                                }
+
+                                Err(err) => {
+                                    if !err.is_empty() {
+                                        print!("{}", err);
+                                    }
+                                }
+                            }
+
+                            io::stdout().flush().unwrap();
+
+                            enable_raw_mode().unwrap();
+                        }
+
+                        print_prompt();
                     }
+
+
+                    KeyCode::Backspace => {
+                        if input.pop().is_some() {
+                            execute!(
+                                io::stdout(),
+                                cursor::MoveLeft(1),
+                                Clear(ClearType::UntilNewLine)
+                            )
+                            .unwrap();
+
+                            io::stdout().flush().unwrap();
+                        }
+                    }
+
+
+                    KeyCode::Char(c) => {
+                        input.push(c);
+
+                        print!("{}", c);
+                        io::stdout().flush().unwrap();
+                    }
+
+                    _ => {}
                 }
             }
 
+            Ok(_) => {}
+
             Err(err) => {
-                eprintln!("{err}");
+                eprintln!("terminal error: {}", err);
                 break;
             }
         }
     }
+
+    disable_raw_mode().unwrap();
+
+    println!();
+}
+
+fn print_prompt() {
+    let current = match std::env::current_dir() {
+        Ok(path) => path,
+        Err(_) => {
+            print!("\r\x1b[2K$ ");
+            io::stdout().flush().unwrap();
+            return;
+        }
+    };
+
+    let home = std::env::var("HOME").unwrap_or_default();
+
+    let path = current
+        .display()
+        .to_string()
+        .replace(&home, "~");
+
+    print!(
+        "\r\x1b[2K\x1b[34m{}\x1b[0m \x1b[32m$ \x1b[0m",
+        path
+    );
+
+    io::stdout().flush().unwrap();
 }
 
 fn needs_more_input(input: &str) -> bool {
-    has_unclosed_quotes(input) || ends_with_unescaped_backslash(input)
+    has_unclosed_quotes(input)
+        || ends_with_unescaped_backslash(input)
 }
 
 fn has_unclosed_quotes(input: &str) -> bool {
@@ -56,20 +189,29 @@ fn has_unclosed_quotes(input: &str) -> bool {
     let mut escaped = false;
 
     for c in input.chars() {
+
         if escaped {
             escaped = false;
             continue;
         }
 
+        // Backslash is special outside single quotes
         if c == '\\' && !single_quote {
             escaped = true;
             continue;
         }
 
-        if c == '\'' && !double_quote {
-            single_quote = !single_quote;
-        } else if c == '"' && !single_quote {
-            double_quote = !double_quote;
+        match c {
+
+            '\'' if !double_quote => {
+                single_quote = !single_quote;
+            }
+
+            '"' if !single_quote => {
+                double_quote = !double_quote;
+            }
+
+            _ => {}
         }
     }
 
@@ -90,18 +232,4 @@ fn ends_with_unescaped_backslash(input: &str) -> bool {
     }
 
     count % 2 == 1
-}
-
-fn print_prompt() {
-    let current = std::env::current_dir().unwrap();
-    let home = std::env::var("HOME").unwrap_or_default();
-
-    let path = current
-        .display()
-        .to_string()
-        .replace(&home, "~");
-
-    print!("\x1b[34m{}\x1b[0m \x1b[32m$ \x1b[0m", path);
-
-    io::stdout().flush().unwrap();
 }

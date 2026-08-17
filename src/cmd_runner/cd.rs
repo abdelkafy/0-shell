@@ -1,59 +1,63 @@
 use crate::errors::format_error;
 use crate::models::ShellPath;
+
 use std::env;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 pub fn run(args: Vec<String>, shell_path: &mut ShellPath) {
+    let args: &[String] = if args.first().map(String::as_str) == Some("--") {
+        &args[1..]
+    } else {
+        &args[..]
+    };
+
     if args.len() > 1 {
         eprintln!("cd: too many arguments");
         return;
     }
 
+    let home = match env::var("HOME") {
+        Ok(home) => PathBuf::from(home),
+
+        Err(_) => {
+            eprintln!("cd: HOME not set");
+            return;
+        }
+    };
+
     let target = match args.first().map(String::as_str) {
-        // cd
-        None => match dirs::home_dir() {
-            Some(home) => home,
-            None => {
-                eprintln!("cd: HOME not set");
-                return;
+        None => home.clone(),
+
+        Some("-") => {
+            match &shell_path.previous {
+                Some(path) => path.clone(),
+
+                None => {
+                    eprintln!("cd: OLDPWD not set");
+                    return;
+                }
             }
-        },
+        }
 
-        // cd ~
-        Some("~") => match dirs::home_dir() {
-            Some(home) => home,
-            None => {
-                eprintln!("cd: HOME not set");
-                return;
-            }
-        },
+        Some("~") => home.clone(),
 
-        // cd -
-        Some("-") => shell_path.previous.clone(),
-
-        // cd <path>
+        Some(path) if path.starts_with("~/") => {
+            home.join(&path[2..])
+        }
         Some(path) => PathBuf::from(path),
     };
 
-    let old_current = shell_path.current.clone();
+    let old_current = match env::current_dir() {
+        Ok(path) => path,
+
+        Err(err) => {
+            eprintln!("cd: {}", format_error(&err));
+            return;
+        }
+    };
 
     match env::set_current_dir(&target) {
-        Ok(_) => {
-            shell_path.previous = old_current;
-
-            shell_path.current = match env::current_dir() {
-                Ok(path) => path,
-                Err(err) => {
-                    eprintln!("cd: {}", format_error(&err));
-                    return;
-                }
-            };
-
-            // BusyBox: cd - prints the new directory
-            if args.first().map(String::as_str) == Some("-") {
-                println!("{}", shell_path.current.display());
-            }
-        }
+        Ok(_) => {}
 
         Err(err) => {
             eprintln!(
@@ -61,6 +65,24 @@ pub fn run(args: Vec<String>, shell_path: &mut ShellPath) {
                 target.display(),
                 format_error(&err)
             );
+
+            return;
         }
+    }
+
+    let new_current = match env::current_dir() {
+        Ok(path) => path,
+
+        Err(err) => {
+            eprintln!("cd: {}", format_error(&err));
+            return;
+        }
+    };
+
+    shell_path.previous = Some(old_current);
+    shell_path.current = new_current.clone();
+
+    if args.first().map(String::as_str) == Some("-") {
+        println!("{}", new_current.display());
     }
 }

@@ -1,42 +1,93 @@
+use crate::errors::format_error;
+
 use std::fs;
 use std::path::{Path, PathBuf};
 
-pub fn run(source: &str, destination: &str) {
-    let source_path = Path::new(source);
-    let destination_path = Path::new(destination);
-
-    if !source_path.exists() {
-        eprintln!("cp: {}: No such file or directory", source);
+pub fn run(args: Vec<String>) {
+    if args.is_empty() {
+        eprintln!("cp: missing file operand");
         return;
     }
 
-    // file -> directory
-    let final_destination = if destination_path.is_dir() {
-        let filename = match source_path.file_name() {
-            Some(name) => name,
-            None => {
-                eprintln!("cp: invalid source");
-                return;
+    if args.len() == 1 {
+        eprintln!(
+            "cp: missing destination file operand after '{}'",
+            args[0]
+        );
+        return;
+    }
+
+    let destination = PathBuf::from(&args[args.len() - 1]);
+    let sources = &args[..args.len() - 1];
+
+    // Multiple sources require destination directory
+    if sources.len() > 1 && !destination.is_dir() {
+        eprintln!(
+            "cp: target '{}': Not a directory",
+            destination.display()
+        );
+        return;
+    }
+
+    for source in sources {
+        let source_path = Path::new(source);
+
+        // Source doesn't exist
+        if !source_path.exists() {
+            eprintln!(
+                "cp: cannot stat '{}': {}",
+                source,
+                format_error(&std::io::Error::from(
+                    std::io::ErrorKind::NotFound
+                ))
+            );
+            continue;
+        }
+
+        // Directories are not supported without -r
+        if source_path.is_dir() {
+            eprintln!(
+                "cp: -r not specified; omitting directory '{}'",
+                source
+            );
+            continue;
+        }
+
+        let target = if destination.is_dir() {
+            match source_path.file_name() {
+                Some(name) => destination.join(name),
+
+                None => {
+                    eprintln!("cp: invalid source '{}'", source);
+                    continue;
+                }
             }
+        } else {
+            destination.clone()
         };
 
-        destination_path.join(filename)
-    } else {
-        PathBuf::from(destination)
-    };
+        // Same source and destination
+        if let (Ok(source_canonical), Ok(target_canonical)) = (
+            fs::canonicalize(source_path),
+            fs::canonicalize(&target),
+        ) {
+            if source_canonical == target_canonical {
+                eprintln!(
+                    "cp: '{}' and '{}' are the same file",
+                    source,
+                    target.display()
+                );
+                continue;
+            }
+        }
 
-
-    //if source_path.is_dir() {
-    //    eprintln!("cp: {} is a directory", source);
-    //    return;
-    //}
-
-
-    match fs::copy(source_path, final_destination) {
-        Ok(_) => {}
-
-        Err(err) => {
-            eprintln!("cp: {}", err);
+        // Copy file
+        if let Err(err) = fs::copy(source_path, &target) {
+            eprintln!(
+                "cp: cannot create regular file '{}': {}",
+                target.display(),
+                format_error(&err)
+            );
         }
     }
 }

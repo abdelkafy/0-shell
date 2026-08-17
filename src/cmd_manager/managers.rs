@@ -113,7 +113,7 @@ pub fn cd_manager(args: Vec<String>,shell_path: &mut ShellPath) {
 }
 
 pub fn cp_manager(args: Vec<String>) {
-    cp::run(args[0].as_str(), args[1].as_str());
+    cp::run(args);
 }
 pub fn echo_manager(args: Vec<String>) {
     echo::run(args);

@@ -4,7 +4,7 @@ pub fn parser(input: &str) -> Result<(Command, Vec<String>), String> {
     let tokens = tokenize(input)?;
 
     if tokens.is_empty() {
-        return Err("empty input".to_string());
+        return Err("".to_string());
     }
 
     let name = tokens[0].as_str();
@@ -21,7 +21,7 @@ pub fn parser(input: &str) -> Result<(Command, Vec<String>), String> {
         "mv" => Ok((Command::Mv, args)),
         "mkdir" => Ok((Command::Mkdir, args)),
         "exit" => Ok((Command::Exit, args)),
-        _ => Err(format!("sh: {name}: not found")),
+        _ => Err(format!("sh: {name}: not found\n")),
     }
 }
 
