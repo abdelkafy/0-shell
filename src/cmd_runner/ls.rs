@@ -27,7 +27,6 @@ pub fn run(cmd: models::Ls) {
         Ok(read_dir) => read_dir,
         Err(_) => return,
     };
-
     let unfiltered_files = entries.filter_map(|entry| entry.ok().map(|e| e.path()));
     let mut files: Vec<PathBuf> = Vec::new();
 
@@ -40,8 +39,8 @@ pub fn run(cmd: models::Ls) {
             })
             .collect();
     } else {
-        files.push(PathBuf::from("."));
-        files.push(PathBuf::from(".."));
+        files.push(cmd.path.join("."));
+        files.push(cmd.path.join(".."));
         files.extend(unfiltered_files);
     }
 
@@ -198,9 +197,13 @@ fn long_format(path: &Path, max_sizes: MaxSizes) -> String {
             let max_links_width=max_sizes.max_links_width;
             let max_owner_width=max_sizes.max_owner_width;
             let max_group_width=max_sizes.max_group_width;
-
+    let sym_link_tail=if metadata.file_type().is_symlink(){
+        classify(path, true)
+    }else{
+        "".to_string()
+    };
     format!(
-    "{}{} {:>max_links_width$} {:<max_owner_width$} {:<max_group_width$} {} {} {}",
+    "{}{} {:>max_links_width$} {:<max_owner_width$} {:<max_group_width$} {} {} {}{}",
     type_char,
     perm_str,
     hard_links_pointing,
@@ -209,6 +212,7 @@ fn long_format(path: &Path, max_sizes: MaxSizes) -> String {
     size_or_device, // size_or_device already contains size_width formatting
     format_time(modified_at),
     file_name,
+    sym_link_tail,
 )
 }
 
