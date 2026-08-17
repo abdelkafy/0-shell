@@ -93,18 +93,42 @@ pub fn run(cmd: models::Ls) {
         );
         files
             .iter()
-            .map(|path| File {
+            .enumerate()
+            .map(|(index, path)| {
+               let  virtual_path=  if index==0 && cmd.all {
+                    ".".to_string()
+                }else if index==1 && cmd.all{
+                    "..".to_string()
+                }else{
+                    match  path.file_name() {
+                       Some(value)=>value.to_string_lossy().into_owned(),
+                       None=>"".to_string(),
+                    }
+                };
+                File {
                 file: path,
-                formatted_output: long_format(path, MaxSizes{max_size_width,max_links_width,max_owner_width,max_group_width}),
-            })
+                formatted_output: long_format(path,virtual_path, MaxSizes{max_size_width,max_links_width,max_owner_width,max_group_width}),
+            }})
             .collect()
     } else {
         files
             .iter()
-            .map(|path| File {
+            .enumerate()
+            .map(|(index, path)| {
+               let  virtual_path=  if index==0 && cmd.all{
+                    ".".to_string()
+                }else if index==1 && cmd.all{
+                    "..".to_string()
+                }else{
+                    match  path.file_name() {
+                       Some(value)=>value.to_string_lossy().into_owned(),
+                       None=>"".to_string(),
+                    }
+                };
+                 File {
                 file: path,
-                formatted_output: normal_format(path),
-            })
+                formatted_output:virtual_path,
+            }})
             .collect()
     };
 
@@ -125,7 +149,7 @@ pub fn run(cmd: models::Ls) {
     println!();
 }
 
-fn long_format(path: &Path, max_sizes: MaxSizes) -> String {
+fn long_format(path: &Path,virtual_path : String, max_sizes: MaxSizes) -> String {
     let metadata = match path.symlink_metadata() {
         Ok(meta) => meta,
         Err(_) => return path.to_string_lossy().into_owned(),
@@ -190,10 +214,6 @@ fn long_format(path: &Path, max_sizes: MaxSizes) -> String {
 
     let modified_at = metadata.modified().unwrap_or(UNIX_EPOCH);
 
-    let file_name = path
-        .file_name()
-        .map(|s| s.to_string_lossy())
-        .unwrap_or_else(|| path.to_string_lossy());
             let max_links_width=max_sizes.max_links_width;
             let max_owner_width=max_sizes.max_owner_width;
             let max_group_width=max_sizes.max_group_width;
@@ -211,17 +231,11 @@ fn long_format(path: &Path, max_sizes: MaxSizes) -> String {
     group_name,
     size_or_device, // size_or_device already contains size_width formatting
     format_time(modified_at),
-    file_name,
+    virtual_path,
     sym_link_tail,
 )
 }
 
-fn normal_format(path: &Path) -> String {
-    match path.file_name() {
-        Some(file_name) => file_name.to_string_lossy().into_owned(),
-        None => ".".to_string(),
-    }
-}
 fn classify(file_path: &Path, long: bool) -> String {
     let metadata = match file_path.symlink_metadata() {
         Ok(meta) => meta,
