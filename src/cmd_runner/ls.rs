@@ -11,12 +11,12 @@ use std::{
 use uzers::{get_group_by_gid, get_user_by_uid};
 
 #[derive(Clone, Copy)]
-struct MaxSizes{
-    max_size_width:usize,
-        max_links_width:usize
-        ,max_owner_width:usize
-        ,max_group_width:usize
-    }
+struct MaxSizes {
+    max_size_width: usize,
+    max_links_width: usize,
+    max_owner_width: usize,
+    max_group_width: usize,
+}
 
 struct File<'a> {
     file: &'a Path,
@@ -45,11 +45,24 @@ pub fn run(cmd: models::Ls) {
         files.extend(unfiltered_files);
     }
 
-    ls(files, cmd.flags,true);
+    ls(files, cmd.flags, true);
 }
 
-pub fn ls(files:Vec<PathBuf>,cmd_flags:Flags,is_dir:bool){
-
+pub fn ls(files: Vec<PathBuf>, cmd_flags: Flags, is_dir: bool) {
+    if is_dir{
+        let total_blocks: u64 = files
+            .iter()
+            .filter_map(|path| path.symlink_metadata().ok())
+            .map(|meta| {
+                let blocks = meta.blocks() as u64; 
+                (blocks / 2).max(0) 
+            })
+            .sum();
+    
+        if cmd_flags.long {
+            println!("total {}", total_blocks);
+        }
+    }
     let mut formatted: Vec<File> = if cmd_flags.long {
         let max_size_width = std::cmp::max(
             8,
@@ -101,48 +114,59 @@ pub fn ls(files:Vec<PathBuf>,cmd_flags:Flags,is_dir:bool){
             .iter()
             .enumerate()
             .map(|(index, path)| {
-               let  virtual_path=  if index==0 && cmd_flags.all && is_dir {
+                let virtual_path = if index == 0 && cmd_flags.all && is_dir {
                     ".".to_string()
-                }else if index==1 && cmd_flags.all && is_dir{
+                } else if index == 1 && cmd_flags.all && is_dir {
                     "..".to_string()
-                }else{
-                    let path= path.to_string_lossy().into_owned();
+                } else {
+                    let path = path.to_string_lossy().into_owned();
                     match path.starts_with("./") {
-                         true=>  match path.strip_prefix("./") {
-                            Some(formatted_path)=>formatted_path.to_string(),
-                            None=>"".to_string(),
+                        true => match path.strip_prefix("./") {
+                            Some(formatted_path) => formatted_path.to_string(),
+                            None => "".to_string(),
                         },
-                        false=>path,
+                        false => path,
                     }
                 };
                 File {
-                file: path,
-                formatted_output: long_format(path,virtual_path, MaxSizes{max_size_width,max_links_width,max_owner_width,max_group_width}),
-            }})
+                    file: path,
+                    formatted_output: long_format(
+                        path,
+                        virtual_path,
+                        MaxSizes {
+                            max_size_width,
+                            max_links_width,
+                            max_owner_width,
+                            max_group_width,
+                        },
+                    ),
+                }
+            })
             .collect()
     } else {
         files
             .iter()
             .enumerate()
             .map(|(index, path)| {
-               let  virtual_path=  if index==0 && cmd_flags.all && is_dir{
+                let virtual_path = if index == 0 && cmd_flags.all && is_dir {
                     ".".to_string()
-                }else if index==1 && cmd_flags.all && is_dir{
+                } else if index == 1 && cmd_flags.all && is_dir {
                     "..".to_string()
-                }else{
-                    let path= path.to_string_lossy().into_owned();
+                } else {
+                    let path = path.to_string_lossy().into_owned();
                     match path.starts_with("./") {
-                         true=>  match path.strip_prefix("./") {
-                            Some(formatted_path)=>formatted_path.to_string(),
-                            None=>"".to_string(),
+                        true => match path.strip_prefix("./") {
+                            Some(formatted_path) => formatted_path.to_string(),
+                            None => "".to_string(),
                         },
-                        false=>path,
+                        false => path,
                     }
                 };
-                 File {
-                file: path,
-                formatted_output:virtual_path,
-            }})
+                File {
+                    file: path,
+                    formatted_output: virtual_path,
+                }
+            })
             .collect()
     };
 
@@ -155,14 +179,14 @@ pub fn ls(files:Vec<PathBuf>,cmd_flags:Flags,is_dir:bool){
 
     formatted.sort_by_key(|file: &File<'_>| {
         let file_path = file.file.to_string_lossy();
-        let splitted :Vec<&str> = file_path.split("/").collect();
-        let len= splitted.len();
-        if len>=1{
-          return  splitted[len-1].to_owned();
-        }else{
-           return "".to_owned();
+        let splitted: Vec<&str> = file_path.split("/").collect();
+        let len = splitted.len();
+        if len >= 1 {
+            return splitted[len - 1].to_owned();
+        } else {
+            return "".to_owned();
         }
-});
+    });
 
     let separator = if cmd_flags.long { "\n" } else { " " };
 
@@ -172,7 +196,7 @@ pub fn ls(files:Vec<PathBuf>,cmd_flags:Flags,is_dir:bool){
     println!();
 }
 
-fn long_format(path: &Path,virtual_path : String, max_sizes: MaxSizes) -> String {
+fn long_format(path: &Path, virtual_path: String, max_sizes: MaxSizes) -> String {
     let metadata = match path.symlink_metadata() {
         Ok(meta) => meta,
         Err(_) => return path.to_string_lossy().into_owned(),
@@ -231,32 +255,32 @@ fn long_format(path: &Path,virtual_path : String, max_sizes: MaxSizes) -> String
             let minor = (rdev & 0xff) | ((rdev >> 12) & 0xffffff00);
             format!("{:>3}, {:>3}", major, minor)
         } else {
-            let max_width=max_sizes.max_size_width;
+            let max_width = max_sizes.max_size_width;
             format!("{:>max_width$}", metadata.len())
         };
 
     let modified_at = metadata.modified().unwrap_or(UNIX_EPOCH);
 
-            let max_links_width=max_sizes.max_links_width;
-            let max_owner_width=max_sizes.max_owner_width;
-            let max_group_width=max_sizes.max_group_width;
-    let sym_link_tail=if metadata.file_type().is_symlink(){
+    let max_links_width = max_sizes.max_links_width;
+    let max_owner_width = max_sizes.max_owner_width;
+    let max_group_width = max_sizes.max_group_width;
+    let sym_link_tail = if metadata.file_type().is_symlink() {
         classify(path, true)
-    }else{
+    } else {
         "".to_string()
     };
     format!(
-    "{}{} {:>max_links_width$} {:<max_owner_width$} {:<max_group_width$} {} {} {}{}",
-    type_char,
-    perm_str,
-    hard_links_pointing,
-    owner_name,
-    group_name,
-    size_or_device, // size_or_device already contains size_width formatting
-    format_time(modified_at),
-    virtual_path,
-    sym_link_tail,
-)
+        "{}{} {:>max_links_width$} {:<max_owner_width$} {:<max_group_width$} {} {} {}{}",
+        type_char,
+        perm_str,
+        hard_links_pointing,
+        owner_name,
+        group_name,
+        size_or_device, // size_or_device already contains size_width formatting
+        format_time(modified_at),
+        virtual_path,
+        sym_link_tail,
+    )
 }
 
 fn classify(file_path: &Path, long: bool) -> String {
