@@ -65,7 +65,7 @@ pub fn run(cmd: models::Ls) {
 
     if cmd.classify {
         for file in &mut formatted {
-            file.formatted_output.push_str(&classify(file.file));
+            file.formatted_output.push_str(&classify(file.file,cmd.long));
         }
     }
 
@@ -149,32 +149,37 @@ fn normal_format(path: &Path) -> String {
         None => ".".to_string(),
     }
 }
-
-fn classify(file_path: &Path) -> String {
+fn classify(file_path: &Path, long: bool) -> String {
     let metadata = match file_path.symlink_metadata() {
         Ok(meta) => meta,
         Err(_) => return String::new(),
     };
 
     let symbol = if metadata.file_type().is_dir() {
-        "/"
+        "/".to_string()
     } else if metadata.file_type().is_fifo() {
-        "|"
+        "|".to_string()
     } else if metadata.file_type().is_symlink() {
-        "@"
+        if long {
+            match file_path.read_link() {
+                Ok(target) => format!(" -> {}", target.display()),
+                Err(_) => " -> ?".to_string(),
+            }
+        } else {
+            "@".to_string()
+        }
     } else if metadata.file_type().is_socket() {
-        "="
+        "=".to_string()
     } else if is_door(&metadata) {
-        ">"
+        ">".to_string()
     } else if is_exe(&metadata) {
-        "*"
+        "*".to_string()
     } else {
-        ""
+        String::new()
     };
 
-    symbol.to_string()
+    symbol
 }
-
 fn is_door(entry: &Metadata) -> bool {
     #[cfg(any(target_os = "solaris", target_os = "illumos"))]
     {
