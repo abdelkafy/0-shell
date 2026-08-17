@@ -1,4 +1,7 @@
-use crate::{cmd_runner::{cat, cd, cp, echo, ls, mkdir, mv, pwd, rm}, models::Ls};
+use crate::{
+    cmd_runner::{cat, cd, cp, echo, ls, mkdir, mv, pwd, rm},
+    models::Ls,
+};
 use std::path::PathBuf;
 
 pub fn ls_manager(args: Vec<String>) {
@@ -25,7 +28,16 @@ pub fn ls_manager(args: Vec<String>) {
             }
         } else {
             path_args_count += 1;
-            let path = PathBuf::from(&arg);
+
+            let mut path = PathBuf::from(&arg);
+
+            if arg == "~" {
+               path =  match dirs::home_dir() {
+                Some(value)=>value,
+                None=>PathBuf::from(&arg),
+               } 
+            }
+
             if path.exists() {
                 valid_paths.push(path);
             } else {
@@ -36,7 +48,12 @@ pub fn ls_manager(args: Vec<String>) {
     }
 
     if valid_paths.is_empty() && !invalid_input_found {
-        ls::run(Ls { all, long, classify, path: PathBuf::from(".") });
+        ls::run(Ls {
+            all,
+            long,
+            classify,
+            path: PathBuf::from("."),
+        });
         return;
     }
 
@@ -47,35 +64,40 @@ pub fn ls_manager(args: Vec<String>) {
     for (i, path) in valid_paths.iter().enumerate() {
         if show_header {
             if i > 0 {
-                println!(); 
+                println!();
             }
             println!("{}:", path.display());
         }
-        ls::run(Ls { all, long, classify, path: path.clone() });
+        ls::run(Ls {
+            all,
+            long,
+            classify,
+            path: path.clone(),
+        });
     }
 }
 
 pub fn pwd_manager() {
     pwd::run();
 }
-pub fn cat_manager(args: Vec<String>){
+pub fn cat_manager(args: Vec<String>) {
     cat::run(args[0].as_str())
 }
-pub fn cd_manager(args: Vec<String>){
+pub fn cd_manager(args: Vec<String>) {
     cd::run(args[0].as_str());
 }
-pub fn cp_manager(args: Vec<String>){
-   cp::run(args[0].as_str(),args[1].as_str());
+pub fn cp_manager(args: Vec<String>) {
+    cp::run(args[0].as_str(), args[1].as_str());
 }
-pub fn echo_manager(args: Vec<String>){
+pub fn echo_manager(args: Vec<String>) {
     echo::run(args);
 }
-pub fn mkdir_manager(args: Vec<String>){
+pub fn mkdir_manager(args: Vec<String>) {
     mkdir::run(args);
 }
-pub fn rm_manager(args: Vec<String>){
+pub fn rm_manager(args: Vec<String>) {
     rm::run(args);
 }
-pub fn mv_manager(args: Vec<String>){
+pub fn mv_manager(args: Vec<String>) {
     mv::run(args);
 }
