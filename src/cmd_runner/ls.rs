@@ -145,7 +145,16 @@ pub fn ls(files:Vec<PathBuf>,cmd_flags:Flags,is_dir:bool){
         }
     }
 
-    formatted.sort_by_key(|file: &File<'_>| file.file.to_string_lossy());
+    formatted.sort_by_key(|file: &File<'_>| {
+        let file_path = file.file.to_string_lossy();
+        let splitted :Vec<&str> = file_path.split("/").collect();
+        let len= splitted.len();
+        if len>=1{
+          return  splitted[len-1].to_owned();
+        }else{
+           return "".to_owned();
+        }
+});
 
     let separator = if cmd_flags.long { "\n" } else { " " };
 

@@ -33,8 +33,11 @@ pub fn ls_manager(args: Vec<String>) {
             path_args_count += 1;
 
             let mut path = PathBuf::from(&arg);
-
-            if arg.starts_with("~/") {
+            if arg=="~" {
+                 if let Some(home) = dirs::home_dir() {
+                    path = home;
+                }
+            }else if arg.starts_with("~/") {
                 let rest_of_path = arg[1..].trim_matches('/');
 
                 if let Some(home) = dirs::home_dir() {
