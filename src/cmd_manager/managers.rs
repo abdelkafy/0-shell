@@ -11,9 +11,11 @@ pub fn ls_manager(args: Vec<String>) {
     let mut invalid_input_found = false;
     let mut path_args_count = 0;
     let mut valid_paths: Vec<PathBuf> = Vec::new();
-
+    let mut accept_flags=true;
     for arg in args {
-        if arg.starts_with('-') && arg != "-" {
+        if arg=="--"{
+            accept_flags=false;
+        } else if accept_flags && arg.starts_with('-') && arg != "-" {
             for char in arg.chars().skip(1) {
                 if char == 'a' {
                     all = true;

@@ -170,8 +170,6 @@ fn classify(file_path: &Path, long: bool) -> String {
         }
     } else if metadata.file_type().is_socket() {
         "=".to_string()
-    } else if is_door(&metadata) {
-        ">".to_string()
     } else if is_exe(&metadata) {
         "*".to_string()
     } else {
@@ -180,31 +178,10 @@ fn classify(file_path: &Path, long: bool) -> String {
 
     symbol
 }
-fn is_door(entry: &Metadata) -> bool {
-    #[cfg(any(target_os = "solaris", target_os = "illumos"))]
-    {
-        let mode = entry.mode();
-        (mode & libc::S_IFMT) == libc::S_IFDOOR
-    }
 
-    #[cfg(not(any(target_os = "solaris", target_os = "illumos")))]
-    {
-        let _ = entry;
-        false
-    }
-}
 
 fn is_exe(entry: &Metadata) -> bool {
-    #[cfg(unix)]
-    {
         entry.is_file() && (entry.permissions().mode() & 0o111) != 0
-    }
-
-    #[cfg(not(unix))]
-    {
-        let _ = entry;
-        false
-    }
 }
 
 fn format_time(time: SystemTime) -> String {
