@@ -1,5 +1,6 @@
 use crate::{
-    cmd_runner::{cat, cd, cp, echo, ls, mkdir, mv, pwd, rm}, models::{Ls, models::Flags},
+    cmd_runner::{cat, cd, cp, echo, ls, mkdir, mv, pwd, rm},
+    models::{Ls, models::Flags},
 };
 use std::path::PathBuf;
 
@@ -11,10 +12,10 @@ pub fn ls_manager(args: Vec<String>) {
     let mut path_args_count = 0;
     let mut valid_paths: Vec<PathBuf> = Vec::new();
     let mut valid_files: Vec<PathBuf> = Vec::new();
-    let mut accept_flags=true;
+    let mut accept_flags = true;
     for arg in args {
-        if arg=="--"{
-            accept_flags=false;
+        if arg == "--" {
+            accept_flags = false;
         } else if accept_flags && arg.starts_with('-') && arg != "-" {
             for char in arg.chars().skip(1) {
                 if char == 'a' {
@@ -24,7 +25,7 @@ pub fn ls_manager(args: Vec<String>) {
                 } else if char == 'F' {
                     classify = true;
                 } else {
-                    println!("ls: invalid option -- '{}'", char);
+                    eprintln!("ls: invalid option -- '{}'", char);
                     return;
                 }
             }
@@ -34,40 +35,46 @@ pub fn ls_manager(args: Vec<String>) {
             let mut path = PathBuf::from(&arg);
 
             if arg == "~" {
-               path =  match dirs::home_dir() {
-                Some(value)=>value,
-                None=>PathBuf::from(&arg),
-               } 
+                path = match dirs::home_dir() {
+                    Some(value) => value,
+                    None => PathBuf::from(&arg),
+                }
             }
 
             if path.exists() {
-                if path.is_dir(){
+                if path.is_dir() {
                     valid_paths.push(path);
-                }else if path.is_file(){
+                } else if path.is_file() {
                     valid_files.push(path);
                 }
             } else {
-                println!("ls: {}: No such file or directory", arg);
+               eprintln!("ls: {}: No such file or directory", arg);
                 invalid_input_found = true;
             }
         }
     }
-        let is_empty=valid_files.is_empty();
-        ls::ls(valid_files, Flags{
-            all,long,classify
-        },false);
-    
-    
+    let is_empty = valid_files.is_empty();
+    ls::ls(
+        valid_files,
+        Flags {
+            all,
+            long,
+            classify,
+        },
+        false,
+    );
+
     if valid_paths.is_empty() && is_empty && !invalid_input_found {
         ls::run(Ls {
-           flags: Flags{
-            all,long,classify
-        },
+            flags: Flags {
+                all,
+                long,
+                classify,
+            },
             path: PathBuf::from("."),
         });
         return;
     }
-
 
     let show_header = path_args_count > 1;
 
@@ -79,9 +86,11 @@ pub fn ls_manager(args: Vec<String>) {
             println!("{}:", path.display());
         }
         ls::run(Ls {
-flags:Flags{
-            all,long,classify
-        },
+            flags: Flags {
+                all,
+                long,
+                classify,
+            },
             path: path.clone(),
         });
     }
