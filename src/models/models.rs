@@ -1,20 +1,20 @@
 use std::path::PathBuf;
 
-pub struct Ls{
-    pub flags:Flags,
+pub struct Ls {
+    pub flags: Flags,
     pub path: PathBuf,
 }
-pub struct  Flags{
-pub all: bool,
+
+pub struct Flags {
+    pub all: bool,
     pub long: bool,
     pub classify: bool,
 }
 
-
-pub enum Command{
+pub enum Command {
     Echo,
     Cd,
-    Ls ,
+    Ls,
     Pwd,
     Cat,
     Cp,
@@ -22,5 +22,4 @@ pub enum Command{
     Mv,
     Mkdir,
     Exit,
-    
 }

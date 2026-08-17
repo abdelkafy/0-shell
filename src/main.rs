@@ -7,23 +7,55 @@ use crate::cmd_manager::executor::command_executor;
 use crate::parser::parser::parser;
 
 fn main() {
-
     loop {
         print_prompt();
         io::stdout().flush().unwrap();
 
         let mut input = String::new();
+
         match io::stdin().read_line(&mut input) {
             Ok(0) => {
                 println!();
                 break;
             }
+
             Ok(_) => {
-               match parser(&input)  {
-                   Ok((command,args))=>command_executor(command,args),
-                   Err(str)=>print!("{}",str),
-               }
+                while has_unclosed_quotes(&input) {
+                    print!("> ");
+                    io::stdout().flush().unwrap();
+
+                    let mut next_line = String::new();
+
+                    match io::stdin().read_line(&mut next_line) {
+                        Ok(0) => {
+                            println!();
+                            break;
+                        }
+
+                        Ok(_) => {
+                            input.push_str(&next_line);
+                        }
+
+                        Err(err) => {
+                            eprintln!("{err}");
+                            break;
+                        }
+                    }
+                }
+
+                match parser(&input) {
+                    Ok((command, args)) => {
+                        command_executor(command, args);
+                    }
+
+                    Err(err) => {
+                        if err != "empty input" {
+                            eprintln!("{err}");
+                        }
+                    }
+                }
             }
+
             Err(err) => {
                 eprintln!("{err}");
                 break;
@@ -31,6 +63,33 @@ fn main() {
         }
     }
 }
+
+fn has_unclosed_quotes(input: &str) -> bool {
+    let mut single_quote = false;
+    let mut double_quote = false;
+    let mut escaped = false;
+
+    for c in input.chars() {
+        if escaped {
+            escaped = false;
+            continue;
+        }
+
+        if c == '\\' && !single_quote {
+            escaped = true;
+            continue;
+        }
+
+        if c == '\'' && !double_quote {
+            single_quote = !single_quote;
+        } else if c == '"' && !single_quote {
+            double_quote = !double_quote;
+        }
+    }
+
+    single_quote || double_quote
+}
+
 
 use std::env;
 

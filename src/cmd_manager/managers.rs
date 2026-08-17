@@ -107,7 +107,7 @@ pub fn cat_manager(args: Vec<String>) {
     cat::run(args[0].as_str())
 }
 pub fn cd_manager(args: Vec<String>) {
-    cd::run(args[0].as_str());
+    cd::run(args);
 }
 pub fn cp_manager(args: Vec<String>) {
     cp::run(args[0].as_str(), args[1].as_str());
