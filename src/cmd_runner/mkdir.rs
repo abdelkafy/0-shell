@@ -8,6 +8,8 @@ pub fn run(names: Vec<String>) {
     }
 
     for name in names {
+        let name = name.replace('\n', "\\n");
+
         match fs::create_dir(&name) {
             Ok(_) => {}
 

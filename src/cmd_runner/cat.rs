@@ -9,37 +9,44 @@ pub fn run(args: Vec<String>) {
         return;
     }
 
-     for path in args {
+    for path in args {
+        if path == "-" {
+            run_stdin();
+            continue;
+        }
+
         match File::open(&path) {
             Ok(file) => {
                 let mut reader = BufReader::new(file);
                 let mut data = Vec::new();
-            
-                if let Err(err) = std::io::Read::read_to_end(&mut reader, &mut data) {
+
+                if let Err(err) =
+                    std::io::Read::read_to_end(&mut reader, &mut data)
+                {
                     eprintln!("cat: read error: {}", format_error(&err));
                     return;
                 }
-            
+
                 if let Err(err) = io::stdout().write_all(&data) {
                     eprintln!("cat: write error: {}", format_error(&err));
                     return;
                 }
-            
+
                 if !data.ends_with(b"\n") {
                     if let Err(err) = io::stdout().write_all(b"\n") {
                         eprintln!("cat: write error: {}", format_error(&err));
                         return;
                     }
                 }
-            
+
                 let _ = io::stdout().flush();
             }
-        
+
             Err(err) => match err.kind() {
                 io::ErrorKind::IsADirectory => {
                     eprintln!("cat: read error: Is a directory");
                 }
-            
+
                 _ => {
                     eprintln!(
                         "cat: can't open '{}': {}",
@@ -51,25 +58,21 @@ pub fn run(args: Vec<String>) {
         }
     }
 }
-
 fn run_stdin() {
     let mut buffer = String::new();
     print!("\r");
+    io::stdout().flush().unwrap();
 
     loop {
         match event::read() {
             Ok(Event::Key(key)) => {
-                if key.code == KeyCode::Char('c')
-                    && key.modifiers.contains(KeyModifiers::CONTROL)
-                {
+                if key.code == KeyCode::Char('c') && key.modifiers.contains(KeyModifiers::CONTROL) {
                     print!("^C\r\n");
                     io::stdout().flush().unwrap();
                     return;
                 }
 
-                if key.code == KeyCode::Char('d')
-                    && key.modifiers.contains(KeyModifiers::CONTROL)
-                {
+                if key.code == KeyCode::Char('d') && key.modifiers.contains(KeyModifiers::CONTROL) {
                     print!("\r\n");
                     io::stdout().flush().unwrap();
                     return;
@@ -78,10 +81,6 @@ fn run_stdin() {
                 match key.code {
                     KeyCode::Enter => {
                         print!("\r\n");
-
-                        //print!("{}", buffer);
-
-                        //print!("\r\n");
 
                         buffer.clear();
 
@@ -115,4 +114,3 @@ fn run_stdin() {
         }
     }
 }
-

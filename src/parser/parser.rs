@@ -25,18 +25,20 @@ pub fn parser(input: &str) -> Result<(Command, Vec<String>), String> {
     }
 }
 
+
 fn tokenize(input: &str) -> Result<Vec<String>, String> {
     let mut tokens = Vec::new();
     let mut current = String::new();
 
     let mut single_quote = false;
     let mut double_quote = false;
+    let mut backtick = false;
     let mut token_started = false;
 
     let mut chars = input.chars().peekable();
 
     while let Some(c) = chars.next() {
-
+        // Single quotes
         if single_quote {
             if c == '\'' {
                 single_quote = false;
@@ -47,7 +49,18 @@ fn tokenize(input: &str) -> Result<Vec<String>, String> {
             continue;
         }
 
+        // Backticks: behave like single quotes
+        if backtick {
+            if c == '`' {
+                backtick = false;
+            } else {
+                current.push(c);
+            }
 
+            continue;
+        }
+
+        // Double quotes
         if double_quote {
             match c {
                 '"' => {
@@ -97,6 +110,10 @@ fn tokenize(input: &str) -> Result<Vec<String>, String> {
                 token_started = true;
             }
 
+            '`' => {
+                backtick = true;
+                token_started = true;
+            }
 
             '#'
                 if !token_started
@@ -166,6 +183,10 @@ fn tokenize(input: &str) -> Result<Vec<String>, String> {
 
     if double_quote {
         return Err("sh: unmatched double quote".to_string());
+    }
+
+    if backtick {
+        return Err("sh: unmatched backtick".to_string());
     }
 
     if token_started {

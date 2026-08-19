@@ -62,8 +62,6 @@ pub fn run(args: Vec<String>) {
                 continue;
             }
 
-            // Check if the current directory is inside the directory
-            // that we are about to delete.
             let affects_current_dir = is_current_dir_inside(path);
 
             if let Err(err) = fs::remove_dir_all(path) {

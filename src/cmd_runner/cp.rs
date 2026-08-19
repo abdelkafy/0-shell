@@ -20,7 +20,6 @@ pub fn run(args: Vec<String>) {
     let destination = PathBuf::from(&args[args.len() - 1]);
     let sources = &args[..args.len() - 1];
 
-    // Multiple sources require destination directory
     if sources.len() > 1 && !destination.is_dir() {
         eprintln!(
             "cp: target '{}': Not a directory",
@@ -32,7 +31,6 @@ pub fn run(args: Vec<String>) {
     for source in sources {
         let source_path = Path::new(source);
 
-        // Source doesn't exist
         if !source_path.exists() {
             eprintln!(
                 "cp: cannot stat '{}': {}",
@@ -44,7 +42,6 @@ pub fn run(args: Vec<String>) {
             continue;
         }
 
-        // Directories are not supported without -r
         if source_path.is_dir() {
             eprintln!(
                 "cp: -r not specified; omitting directory '{}'",
@@ -66,7 +63,6 @@ pub fn run(args: Vec<String>) {
             destination.clone()
         };
 
-        // Same source and destination
         if let (Ok(source_canonical), Ok(target_canonical)) = (
             fs::canonicalize(source_path),
             fs::canonicalize(&target),
@@ -81,7 +77,6 @@ pub fn run(args: Vec<String>) {
             }
         }
 
-        // Copy file
         if let Err(err) = fs::copy(source_path, &target) {
             eprintln!(
                 "cp: cannot create regular file '{}': {}",

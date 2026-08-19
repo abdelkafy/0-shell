@@ -36,9 +36,7 @@ fn main() {
             Ok(Event::Key(key)) => {
 
 
-                if key.code == KeyCode::Char('c')
-                    && key.modifiers.contains(KeyModifiers::CONTROL)
-                {
+                if key.code == KeyCode::Char('c') && key.modifiers.contains(KeyModifiers::CONTROL) {
                     input.clear();
 
                     print!("^C\r\n");
@@ -48,9 +46,7 @@ fn main() {
                 }
 
 
-                if key.code == KeyCode::Char('d')
-                    && key.modifiers.contains(KeyModifiers::CONTROL)
-                {
+                if key.code == KeyCode::Char('d') && key.modifiers.contains(KeyModifiers::CONTROL) {
                     if input.is_empty() {
                         break;
                     }
@@ -186,38 +182,39 @@ fn needs_more_input(input: &str) -> bool {
 fn has_unclosed_quotes(input: &str) -> bool {
     let mut single_quote = false;
     let mut double_quote = false;
+    let mut backtick = false;
     let mut escaped = false;
 
     for c in input.chars() {
-
         if escaped {
             escaped = false;
             continue;
         }
 
-        // Backslash is special outside single quotes
         if c == '\\' && !single_quote {
             escaped = true;
             continue;
         }
 
         match c {
-
-            '\'' if !double_quote => {
+            '\'' if !double_quote && !backtick => {
                 single_quote = !single_quote;
             }
 
-            '"' if !single_quote => {
+            '"' if !single_quote && !backtick => {
                 double_quote = !double_quote;
+            }
+
+            '`' if !single_quote && !double_quote => {
+                backtick = !backtick;
             }
 
             _ => {}
         }
     }
 
-    single_quote || double_quote
+    single_quote || double_quote || backtick
 }
-
 fn ends_with_unescaped_backslash(input: &str) -> bool {
     let line = input.trim_end_matches(['\n', '\r']);
 
