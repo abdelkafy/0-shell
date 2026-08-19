@@ -149,7 +149,7 @@ pub fn ls_files(files: Vec<PathBuf>, cmd_flags: Flags, is_dir: bool) {
             .iter()
             .enumerate()
             .map(|(index, path)| {
-                let virtual_path = if index == 0 && cmd_flags.all && is_dir {
+                let mut virtual_path = if index == 0 && cmd_flags.all && is_dir {
                     ".".to_string()
                 } else if index == 1 && cmd_flags.all && is_dir {
                     "..".to_string()
@@ -166,18 +166,16 @@ pub fn ls_files(files: Vec<PathBuf>, cmd_flags: Flags, is_dir: bool) {
                 };
                 File {
                     file: path,
-                    formatted_output: virtual_path,
+                    formatted_output: {
+                        if cmd_flags.classify {
+                            virtual_path.push_str(&classify(path, false));
+                        }
+                        virtual_path
+                    },
                 }
             })
             .collect()
     };
-
-    if cmd_flags.classify  {
-        for file in &mut formatted {
-            file.formatted_output
-                .push_str(&classify(file.file, cmd_flags.long));
-        }
-    }
 
     formatted.sort_by_key(|file: &File<'_>| {
         let file_path = file.file.to_string_lossy();
@@ -270,9 +268,10 @@ fn long_format(path: &Path, virtual_path: String, max_sizes: MaxSizes) -> String
     let max_links_width = max_sizes.max_links_width;
     let max_owner_width = max_sizes.max_owner_width;
     let max_group_width = max_sizes.max_group_width;
-    
+    let sym_link_tail = classify(path, true);
+  
     format!(
-        "{}{} {:>max_links_width$} {:<max_owner_width$} {:<max_group_width$} {} {} {}",
+        "{}{} {:>max_links_width$} {:<max_owner_width$} {:<max_group_width$} {} {} {}{}",
         type_char,
         perm_str,
         hard_links_pointing,
@@ -280,7 +279,8 @@ fn long_format(path: &Path, virtual_path: String, max_sizes: MaxSizes) -> String
         group_name,
         size_or_device, // size_or_device already contains size_width formatting
         format_time(modified_at),
-        virtual_path
+        virtual_path,
+        sym_link_tail,
     )
 }
 

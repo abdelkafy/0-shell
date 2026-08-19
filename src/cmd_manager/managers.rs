@@ -69,7 +69,9 @@ pub fn ls_manager(args: Vec<String>) {
         },
         false,
     );
-    println!()
+    if !valid_paths.is_empty() {
+        println!()
+    }
     }
    
     if valid_paths.is_empty() && files_is_empty && !invalid_input_found {
