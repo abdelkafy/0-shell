@@ -112,23 +112,11 @@ pub fn ls_files(files: Vec<PathBuf>, cmd_flags: Flags, is_dir: bool) {
         );
         files
             .iter()
-            .enumerate()
-            .map(|(index, path)| {
-                let virtual_path = if index == 0 && cmd_flags.all && is_dir {
-                    ".".to_string()
-                } else if index == 1 && cmd_flags.all && is_dir {
-                    "..".to_string()
-                } else {
-                    let path = path.to_string_lossy().into_owned();
-                    match path.contains("/") {
-                        true => match path.rsplit('/').next() {
-                            Some(formatted_path) => formatted_path.to_string(),
-                            None => "".to_string(),
-                        },
-
-                        false => path,
-                    }
-                };
+            .map(| path| {
+                let virtual_path = path
+                    .file_name()
+                    .map(|name| name.to_string_lossy().into_owned())
+                    .unwrap_or_else(|| path.display().to_string());
                 File {
                     file: path,
                     formatted_output: long_format(
@@ -148,23 +136,11 @@ pub fn ls_files(files: Vec<PathBuf>, cmd_flags: Flags, is_dir: bool) {
     } else {
         files
             .iter()
-            .enumerate()
-            .map(|(index, path)| {
-                let mut virtual_path = if index == 0 && cmd_flags.all && is_dir {
-                    ".".to_string()
-                } else if index == 1 && cmd_flags.all && is_dir {
-                    "..".to_string()
-                } else {
-                    let path = path.to_string_lossy().into_owned();
-                    match path.contains("/") {
-                        true => match path.rsplit('/').next() {
-                            Some(formatted_path) => formatted_path.to_string(),
-                            None => "".to_string(),
-                        },
-
-                        false => path,
-                    }
-                };
+            .map(|path| {
+                let mut virtual_path = path
+                    .file_name()
+                    .map(|name| name.to_string_lossy().into_owned())
+                    .unwrap_or_else(|| path.display().to_string());
                 File {
                     file: path,
                     formatted_output: {
@@ -288,7 +264,7 @@ fn long_format(
         hard_links_pointing,
         owner_name,
         group_name,
-        size_or_device, // size_or_device already contains size_width formatting
+        size_or_device,
         format_time(modified_at),
         virtual_path,
         suffix,
