@@ -43,9 +43,7 @@ pub fn ls_manager(args: Vec<String>) {
                 if let Some(home) = dirs::home_dir() {
                     path = home.join(rest_of_path);
                 }
-                if let Some(home) = dirs::home_dir() {
-                    path = home.join(rest_of_path);
-                }
+               
             }
 
             if path.exists() {
