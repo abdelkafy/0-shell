@@ -8,7 +8,7 @@ pub fn command_executor(
 ) {
     match command {
         Command::Cd => managers::cd_manager(args, shell_path),
-        Command::Pwd => managers::pwd_manager(),
+        Command::Pwd => managers::pwd_manager(args),
         Command::Ls => managers::ls_manager(args),
         Command::Cat => managers::cat_manager(args),
         Command::Cp => managers::cp_manager(args),

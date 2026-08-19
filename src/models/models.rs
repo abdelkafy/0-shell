@@ -32,7 +32,7 @@ pub struct ShellPath {
 
 impl ShellPath {
     pub fn new() -> Self {
-        let current = std::env::current_dir().unwrap();
+        let current = std::env::current_dir().unwrap_or_default();
 
         Self {
             current: current.clone(),

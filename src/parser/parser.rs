@@ -67,7 +67,7 @@ fn tokenize(input: &str) -> Result<Vec<String>, String> {
                 '\\' => {
                     match chars.peek() {
                         Some('$') | Some('`') | Some('"') | Some('\\') => {
-                            current.push(chars.next().unwrap());
+                            current.push(chars.next().unwrap_or_default());
                         }
 
                         Some('\n') => {
@@ -151,7 +151,7 @@ fn tokenize(input: &str) -> Result<Vec<String>, String> {
                     }
 
                     Some(_) => {
-                        current.push(chars.next().unwrap());
+                        current.push(chars.next().unwrap_or_default());
                     }
 
                     None => {

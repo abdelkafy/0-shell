@@ -24,7 +24,7 @@ use crossterm::{
 use std::io::{self, Write};
 
 fn main() {
-    enable_raw_mode().unwrap();
+    enable_raw_mode().unwrap_or_default();
 
     let mut shell_path = ShellPath::new();
     let mut input = String::new();
@@ -65,14 +65,14 @@ fn main() {
 
                     KeyCode::Enter => {
                         print!("\r\n");
-                        io::stdout().flush().unwrap();
+                        io::stdout().flush().unwrap_or_default();
 
 
                         if needs_more_input(&input) {
                             input.push('\n');
 
                             print!("> ");
-                            io::stdout().flush().unwrap();
+                            io::stdout().flush().unwrap_or_default();
 
                             continue;
                         }
@@ -83,7 +83,7 @@ fn main() {
 
                         if !command_input.trim().is_empty() {
 
-                            disable_raw_mode().unwrap();
+                            disable_raw_mode().unwrap_or_default();
 
                             match parser(&command_input) {
                                 Ok((command, args)) => {
@@ -101,9 +101,9 @@ fn main() {
                                 }
                             }
 
-                            io::stdout().flush().unwrap();
+                            io::stdout().flush().unwrap_or_default();
 
-                            enable_raw_mode().unwrap();
+                            enable_raw_mode().unwrap_or_default();
                         }
 
                         print_prompt();
@@ -117,9 +117,9 @@ fn main() {
                                 cursor::MoveLeft(1),
                                 Clear(ClearType::UntilNewLine)
                             )
-                            .unwrap();
+                            .unwrap_or_default();
 
-                            io::stdout().flush().unwrap();
+                            io::stdout().flush().unwrap_or_default();
                         }
                     }
 
@@ -128,7 +128,7 @@ fn main() {
                         input.push(c);
 
                         print!("{}", c);
-                        io::stdout().flush().unwrap();
+                        io::stdout().flush().unwrap_or_default();
                     }
 
                     _ => {}
@@ -144,7 +144,7 @@ fn main() {
         }
     }
 
-    disable_raw_mode().unwrap();
+    disable_raw_mode().unwrap_or_default();
 
     println!();
 }
@@ -154,7 +154,7 @@ fn print_prompt() {
         Ok(path) => path,
         Err(_) => {
             print!("\r\x1b[2K$ ");
-            io::stdout().flush().unwrap();
+            io::stdout().flush().unwrap_or_default();
             return;
         }
     };
@@ -171,7 +171,7 @@ fn print_prompt() {
         path
     );
 
-    io::stdout().flush().unwrap();
+    io::stdout().flush().unwrap_or_default();
 }
 
 fn needs_more_input(input: &str) -> bool {

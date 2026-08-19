@@ -2,6 +2,7 @@ use crate::errors::format_error;
 use crossterm::event::{self, Event, KeyCode, KeyModifiers};
 use std::fs::File;
 use std::io::{self, BufReader, Write};
+use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 
 pub fn run(args: Vec<String>) {
     if args.is_empty() {
@@ -58,46 +59,53 @@ pub fn run(args: Vec<String>) {
         }
     }
 }
+
 fn run_stdin() {
+    enable_raw_mode().unwrap_or_default();
+
     let mut buffer = String::new();
-    print!("\r");
-    io::stdout().flush().unwrap();
 
     loop {
         match event::read() {
             Ok(Event::Key(key)) => {
+
                 if key.code == KeyCode::Char('c') && key.modifiers.contains(KeyModifiers::CONTROL) {
                     print!("^C\r\n");
-                    io::stdout().flush().unwrap();
+                    io::stdout().flush().unwrap_or_default();
+
+                    disable_raw_mode().unwrap_or_default();
                     return;
                 }
 
                 if key.code == KeyCode::Char('d') && key.modifiers.contains(KeyModifiers::CONTROL) {
                     print!("\r\n");
-                    io::stdout().flush().unwrap();
+                    io::stdout().flush().unwrap_or_default();
+
+                    disable_raw_mode().unwrap_or_default();
                     return;
                 }
 
                 match key.code {
                     KeyCode::Enter => {
-                        print!("\r\n");
+                        print!("\r\n{}\r\n", buffer);
 
                         buffer.clear();
 
-                        io::stdout().flush().unwrap();
+                        io::stdout().flush().unwrap_or_default();
                     }
 
                     KeyCode::Char(c) => {
                         buffer.push(c);
 
                         print!("{}", c);
-                        io::stdout().flush().unwrap();
+
+                        io::stdout().flush().unwrap_or_default();
                     }
 
                     KeyCode::Backspace => {
                         if buffer.pop().is_some() {
-                            print!("\x08 \x1b[K");
-                            io::stdout().flush().unwrap();
+                            print!("\x08 \x08");
+                            io::stdout().flush().unwrap_or_default();
                         }
                     }
 
@@ -109,6 +117,8 @@ fn run_stdin() {
 
             Err(err) => {
                 eprintln!("cat: read error: {}", err);
+
+                disable_raw_mode().unwrap_or_default();
                 return;
             }
         }
