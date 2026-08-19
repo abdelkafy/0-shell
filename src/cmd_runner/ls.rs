@@ -140,6 +140,7 @@ pub fn ls_files(files: Vec<PathBuf>, cmd_flags: Flags, is_dir: bool) {
                             max_owner_width,
                             max_group_width,
                         },
+                        cmd_flags.classify
                     ),
                 }
             })
@@ -200,7 +201,7 @@ pub fn ls_files(files: Vec<PathBuf>, cmd_flags: Flags, is_dir: bool) {
     }
 }
 
-fn long_format(path: &Path, virtual_path: String, max_sizes: MaxSizes) -> String {
+fn long_format(path: &Path, virtual_path: String, max_sizes: MaxSizes,is_classify:bool) -> String {
     let metadata = match path.symlink_metadata() {
         Ok(meta) => meta,
         Err(_) => return path.to_string_lossy().into_owned(),
@@ -268,8 +269,16 @@ fn long_format(path: &Path, virtual_path: String, max_sizes: MaxSizes) -> String
     let max_links_width = max_sizes.max_links_width;
     let max_owner_width = max_sizes.max_owner_width;
     let max_group_width = max_sizes.max_group_width;
-    let sym_link_tail = classify(path, true);
-  
+    let sym_link_tail = if metadata.file_type().is_symlink() {
+        classify(path, true)
+    } else {
+        if is_classify {
+            classify(path, true)
+        }else{
+            "".to_string()
+        }
+        
+    };
     format!(
         "{}{} {:>max_links_width$} {:<max_owner_width$} {:<max_group_width$} {} {} {}{}",
         type_char,
