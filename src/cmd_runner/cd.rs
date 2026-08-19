@@ -1,36 +1,88 @@
+use crate::errors::format_error;
+use crate::models::ShellPath;
+
 use std::env;
-use std::io::ErrorKind;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
-pub fn run(path: &str) {
-    let target = expand_home(path);
+pub fn run(args: Vec<String>, shell_path: &mut ShellPath) {
+    let args: &[String] = if args.first().map(String::as_str) == Some("--") {
+        &args[1..]
+    } else {
+        &args[..]
+    };
 
-    if let Err(err) = env::set_current_dir(&target) {
-        let message = match err.kind() {
-            ErrorKind::NotFound => "no such file or directory",
-            ErrorKind::PermissionDenied => "permission denied",
-            ErrorKind::NotADirectory => "not a directory",
-            _ => "unknown error",
-        };
-
-        eprintln!("cd: {}: {}", message, path);
+    if args.len() > 1 {
+        eprintln!("cd: too many arguments");
+        return;
     }
-}
 
-fn expand_home(path: &str) -> PathBuf {
-    let path = if path.is_empty() { "~" } else { path };
+    let home = match env::var("HOME") {
+        Ok(home) => PathBuf::from(home),
 
-    if path == "~" {
-        if let Ok(home) = env::var("HOME") {
-            return PathBuf::from(home);
+        Err(_) => {
+            eprintln!("cd: HOME not set");
+            return;
+        }
+    };
+
+    let target = match args.first().map(String::as_str) {
+        None => home.clone(),
+
+        Some("-") => {
+            match &shell_path.previous {
+                Some(path) => path.clone(),
+
+                None => {
+                    eprintln!("cd: OLDPWD not set");
+                    return;
+                }
+            }
+        }
+
+        Some("~") => home.clone(),
+
+        Some(path) if path.starts_with("~/") => {
+            home.join(&path[2..])
+        }
+        Some(path) => PathBuf::from(path),
+    };
+
+    let old_current = match env::current_dir() {
+        Ok(path) => path,
+
+        Err(err) => {
+            eprintln!("cd: {}", format_error(&err));
+            return;
+        }
+    };
+
+    match env::set_current_dir(&target) {
+        Ok(_) => {}
+
+        Err(err) => {
+            eprintln!(
+                "cd: {}: {}",
+                target.display(),
+                format_error(&err)
+            );
+
+            return;
         }
     }
 
-    if let Some(rest) = path.strip_prefix("~/") {
-        if let Ok(home) = env::var("HOME") {
-            return PathBuf::from(home).join(rest);
-        }
-    }
+    let new_current = match env::current_dir() {
+        Ok(path) => path,
 
-    PathBuf::from(path)
+        Err(err) => {
+            eprintln!("cd: {}", format_error(&err));
+            return;
+        }
+    };
+
+    shell_path.previous = Some(old_current);
+    shell_path.current = new_current.clone();
+
+    if args.first().map(String::as_str) == Some("-") {
+        println!("{}", new_current.display());
+    }
 }
