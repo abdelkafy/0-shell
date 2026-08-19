@@ -1,6 +1,6 @@
 use std::fs;
 use std::io;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 pub fn run(args: Vec<String>) {
     if args.len() < 2 {
@@ -8,34 +8,38 @@ pub fn run(args: Vec<String>) {
         return;
     }
 
-    let source = &args[0];
-    let destination = &args[1];
+    let destination = Path::new(&args[args.len() - 1]);
+    let sources = &args[..args.len() - 1];
 
-    let final_destination = if Path::new(destination).is_dir() {
-        let filename = Path::new(source)
-            .file_name()
-            .unwrap();
+    if sources.len() > 1 && !destination.is_dir() {
+        eprintln!(
+            "mv: target '{}': No such file or directory",
+            destination.display()
+        );
+        return;
+    }
 
-        Path::new(destination).join(filename)
-    } else {
-        Path::new(destination).to_path_buf()
-    };
+    for source in sources {
+        let source_path = Path::new(source);
 
-    match fs::rename(source, &final_destination) {
-        Ok(_) => {}
-
-        Err(err) => {
-            // cross filesystem
-            if err.raw_os_error() == Some(18) {
-                match copy_and_remove(source, &final_destination) {
-                    Ok(_) => {}
-                    Err(e) => {
-                        eprintln!("mv: {}", e);
-                    }
+        let final_destination = if destination.is_dir() {
+            match source_path.file_name() {
+                Some(filename) => destination.join(filename),
+                None => {
+                    eprintln!("mv: invalid source '{}'", source);
+                    continue;
                 }
-            } else {
+            }
+        } else {
+            destination.to_path_buf()
+        };
+
+        match fs::rename(source_path, &final_destination) {
+            Ok(_) => {}
+
+            Err(err) => {
                 eprintln!(
-                    "mv: {} -> {}: {}",
+                    "mv: cannot move '{}' to '{}': {}",
                     source,
                     final_destination.display(),
                     err
@@ -43,11 +47,4 @@ pub fn run(args: Vec<String>) {
             }
         }
     }
-}
-
-fn copy_and_remove(source: &str, destination: &Path) -> io::Result<()> {
-    fs::copy(source, destination)?;
-    fs::remove_file(source)?;
-
-    Ok(())
 }

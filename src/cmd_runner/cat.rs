@@ -9,14 +9,27 @@ pub fn run(args: Vec<String>) {
         return;
     }
 
-   for path in args {
+     for path in args {
         match File::open(&path) {
             Ok(file) => {
                 let mut reader = BufReader::new(file);
+                let mut data = Vec::new();
             
-                if let Err(err) = io::copy(&mut reader, &mut io::stdout()) {
+                if let Err(err) = std::io::Read::read_to_end(&mut reader, &mut data) {
                     eprintln!("cat: read error: {}", format_error(&err));
                     return;
+                }
+            
+                if let Err(err) = io::stdout().write_all(&data) {
+                    eprintln!("cat: write error: {}", format_error(&err));
+                    return;
+                }
+            
+                if !data.ends_with(b"\n") {
+                    if let Err(err) = io::stdout().write_all(b"\n") {
+                        eprintln!("cat: write error: {}", format_error(&err));
+                        return;
+                    }
                 }
             
                 let _ = io::stdout().flush();
@@ -37,7 +50,6 @@ pub fn run(args: Vec<String>) {
             },
         }
     }
-
 }
 
 fn run_stdin() {
@@ -67,9 +79,9 @@ fn run_stdin() {
                     KeyCode::Enter => {
                         print!("\r\n");
 
-                        print!("{}", buffer);
+                        //print!("{}", buffer);
 
-                        print!("\r\n");
+                        //print!("\r\n");
 
                         buffer.clear();
 
