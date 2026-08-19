@@ -256,8 +256,8 @@ fn long_format(path: &Path, virtual_path: String, max_sizes: MaxSizes) -> String
     let size_or_device =
         if metadata.file_type().is_char_device() || metadata.file_type().is_block_device() {
             let rdev = metadata.rdev();
-            let major = (rdev >> 8) & 0xfff;
-            let minor = (rdev & 0xff) | ((rdev >> 12) & 0xffffff00);
+            let major = libc::major(rdev);
+            let minor = libc::minor(rdev);
             format!("{:>3}, {:>3}", major, minor)
         } else {
             let max_width = max_sizes.max_size_width;
