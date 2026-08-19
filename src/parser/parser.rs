@@ -49,7 +49,6 @@ fn tokenize(input: &str) -> Result<Vec<String>, String> {
             continue;
         }
 
-        // Backticks: behave like single quotes
         if backtick {
             if c == '`' {
                 backtick = false;

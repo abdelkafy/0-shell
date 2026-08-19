@@ -133,3 +133,19 @@ pub fn rm_manager(args: Vec<String>) {
 pub fn mv_manager(args: Vec<String>) {
     mv::run(args);
 }
+
+pub fn exit_manager(args: Vec<String>) {
+    if args.is_empty() {
+        std::process::exit(0);
+    }
+
+    match args[0].parse::<i64>() {
+        Ok(n) => {
+            let status = n.rem_euclid(256) as i32;
+            std::process::exit(status);
+        }
+        Err(_) => {
+            eprintln!("sh: exit: Illegal number: {}", args[0]);
+        }
+    }
+}

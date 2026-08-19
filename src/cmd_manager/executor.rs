@@ -16,6 +16,6 @@ pub fn command_executor(
         Command::Rm => managers::rm_manager(args),
         Command::Mkdir => managers::mkdir_manager(args),
         Command::Echo => managers::echo_manager(args),
-        Command::Exit => std::process::exit(0),
+        Command::Exit => managers::exit_manager(args),
     }
 }
