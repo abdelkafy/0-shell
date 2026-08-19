@@ -1,6 +1,5 @@
 use std::fs;
-use std::io;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 pub fn run(args: Vec<String>) {
     if args.len() < 2 {

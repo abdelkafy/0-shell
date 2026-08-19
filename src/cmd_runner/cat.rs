@@ -33,7 +33,7 @@ pub fn run(args: Vec<String>) {
                 }
 
                 if !data.ends_with(b"\n") {
-                    if let Err(err) = io::stdout().write_all(b"\n") {
+                    if let Err(err) = io::stdout().write_all(b"%\n") {
                         eprintln!("cat: write error: {}", format_error(&err));
                         return;
                     }

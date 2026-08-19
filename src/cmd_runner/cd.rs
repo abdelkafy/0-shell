@@ -1,8 +1,7 @@
 use crate::errors::format_error;
 use crate::models::ShellPath;
-
+use std::path::PathBuf;
 use std::env;
-use std::path::{Path, PathBuf};
 
 pub fn run(args: Vec<String>, shell_path: &mut ShellPath) {
     let args: &[String] = if args.first().map(String::as_str) == Some("--") {

@@ -38,7 +38,6 @@ fn tokenize(input: &str) -> Result<Vec<String>, String> {
     let mut chars = input.chars().peekable();
 
     while let Some(c) = chars.next() {
-        // Single quotes
         if single_quote {
             if c == '\'' {
                 single_quote = false;
@@ -59,7 +58,6 @@ fn tokenize(input: &str) -> Result<Vec<String>, String> {
             continue;
         }
 
-        // Double quotes
         if double_quote {
             match c {
                 '"' => {
