@@ -26,7 +26,10 @@ struct File<'a> {
 pub fn run_dir(cmd: models::Ls) {
     let entries = match std::fs::read_dir(&cmd.path) {
         Ok(read_dir) => read_dir,
-        Err(_) => return,
+        Err(err) => {
+            eprintln!("ls: dir:{}",err);
+            return;
+        },
     };
     let unfiltered_files = entries.filter_map(|entry| entry.ok().map(|e| e.path()));
     let mut files: Vec<PathBuf> = Vec::new();
@@ -169,7 +172,7 @@ pub fn ls_files(files: Vec<PathBuf>, cmd_flags: Flags, is_dir: bool) {
             .collect()
     };
 
-    if cmd_flags.classify {
+    if cmd_flags.classify && !cmd_flags.all {
         for file in &mut formatted {
             file.formatted_output
                 .push_str(&classify(file.file, cmd_flags.long));
