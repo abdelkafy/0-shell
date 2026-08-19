@@ -23,7 +23,7 @@ struct File<'a> {
     formatted_output: String,
 }
 
-pub fn run(cmd: models::Ls) {
+pub fn run_dir(cmd: models::Ls) {
     let entries = match std::fs::read_dir(&cmd.path) {
         Ok(read_dir) => read_dir,
         Err(_) => return,
@@ -44,13 +44,7 @@ pub fn run(cmd: models::Ls) {
         files.push(cmd.path.join(".."));
         files.extend(unfiltered_files);
     }
-
-    ls(files, cmd.flags, true);
-}
-
-pub fn ls(files: Vec<PathBuf>, cmd_flags: Flags, is_dir: bool) {
-    if is_dir{
-        let total_blocks: u64 = files
+     let total_blocks: u64 = files
             .iter()
             .filter_map(|path| path.symlink_metadata().ok())
             .map(|meta| {
@@ -59,10 +53,13 @@ pub fn ls(files: Vec<PathBuf>, cmd_flags: Flags, is_dir: bool) {
             })
             .sum();
     
-        if cmd_flags.long {
+        if cmd.flags.long {
             println!("total {}", total_blocks);
         }
-    }
+    ls_files(files, cmd.flags, true);
+}
+
+pub fn ls_files(files: Vec<PathBuf>, cmd_flags: Flags, is_dir: bool) {
     let mut formatted: Vec<File> = if cmd_flags.long {
         let max_size_width = std::cmp::max(
             8,
