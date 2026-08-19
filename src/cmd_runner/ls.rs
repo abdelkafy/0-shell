@@ -59,10 +59,10 @@ pub fn run_dir(cmd: models::Ls) {
     if cmd.flags.long {
         println!("total {}", total_blocks);
     }
-    ls_files(files, cmd.flags, true);
+    ls_files(files, cmd.flags);
 }
 
-pub fn ls_files(files: Vec<PathBuf>, cmd_flags: Flags, is_dir: bool) {
+pub fn ls_files(files: Vec<PathBuf>, cmd_flags: Flags) {
     let mut formatted: Vec<File> = if cmd_flags.long {
         let max_size_width = std::cmp::max(
             8,

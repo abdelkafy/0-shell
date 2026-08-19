@@ -67,7 +67,7 @@ pub fn ls_manager(args: Vec<String>) {
             long,
             classify,
         },
-        false,
+        
     );
     if !valid_paths.is_empty() {
         println!()
