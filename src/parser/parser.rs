@@ -21,7 +21,7 @@ pub fn parser(input: &str) -> Result<(Command, Vec<String>), String> {
         "mv" => Ok((Command::Mv, args)),
         "mkdir" => Ok((Command::Mkdir, args)),
         "exit" => Ok((Command::Exit, args)),
-        _ => Err(format!("sh: {name}: not found\n")),
+        _ => Err(format!("Command '{name}' not found\n")),
     }
 }
 
