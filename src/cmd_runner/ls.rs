@@ -44,18 +44,18 @@ pub fn run_dir(cmd: models::Ls) {
         files.push(cmd.path.join(".."));
         files.extend(unfiltered_files);
     }
-     let total_blocks: u64 = files
-            .iter()
-            .filter_map(|path| path.symlink_metadata().ok())
-            .map(|meta| {
-                let blocks = meta.blocks() as u64; 
-                (blocks / 2).max(0) 
-            })
-            .sum();
-    
-        if cmd.flags.long {
-            println!("total {}", total_blocks);
-        }
+    let total_blocks: u64 = files
+        .iter()
+        .filter_map(|path| path.symlink_metadata().ok())
+        .map(|meta| {
+            let blocks = meta.blocks() as u64;
+            (blocks / 2).max(0)
+        })
+        .sum();
+
+    if cmd.flags.long {
+        println!("total {}", total_blocks);
+    }
     ls_files(files, cmd.flags, true);
 }
 
@@ -117,11 +117,12 @@ pub fn ls_files(files: Vec<PathBuf>, cmd_flags: Flags, is_dir: bool) {
                     "..".to_string()
                 } else {
                     let path = path.to_string_lossy().into_owned();
-                    match path.starts_with("./") {
-                        true => match path.strip_prefix("./") {
+                    match path.contains("/") {
+                        true => match path.rsplit('/').next() {
                             Some(formatted_path) => formatted_path.to_string(),
                             None => "".to_string(),
                         },
+
                         false => path,
                     }
                 };
@@ -151,11 +152,12 @@ pub fn ls_files(files: Vec<PathBuf>, cmd_flags: Flags, is_dir: bool) {
                     "..".to_string()
                 } else {
                     let path = path.to_string_lossy().into_owned();
-                    match path.starts_with("./") {
-                        true => match path.strip_prefix("./") {
+                    match path.contains("/") {
+                        true => match path.rsplit('/').next() {
                             Some(formatted_path) => formatted_path.to_string(),
                             None => "".to_string(),
                         },
+
                         false => path,
                     }
                 };
@@ -184,7 +186,6 @@ pub fn ls_files(files: Vec<PathBuf>, cmd_flags: Flags, is_dir: bool) {
             return "".to_owned();
         }
     });
-
 
     for file in formatted {
         if cmd_flags.long {
