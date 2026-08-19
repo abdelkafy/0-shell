@@ -172,7 +172,7 @@ pub fn ls_files(files: Vec<PathBuf>, cmd_flags: Flags, is_dir: bool) {
             .collect()
     };
 
-    if cmd_flags.classify && !cmd_flags.all {
+    if cmd_flags.classify  {
         for file in &mut formatted {
             file.formatted_output
                 .push_str(&classify(file.file, cmd_flags.long));
@@ -270,13 +270,9 @@ fn long_format(path: &Path, virtual_path: String, max_sizes: MaxSizes) -> String
     let max_links_width = max_sizes.max_links_width;
     let max_owner_width = max_sizes.max_owner_width;
     let max_group_width = max_sizes.max_group_width;
-    let sym_link_tail = if metadata.file_type().is_symlink() {
-        classify(path, true)
-    } else {
-        "".to_string()
-    };
+    
     format!(
-        "{}{} {:>max_links_width$} {:<max_owner_width$} {:<max_group_width$} {} {} {}{}",
+        "{}{} {:>max_links_width$} {:<max_owner_width$} {:<max_group_width$} {} {} {}",
         type_char,
         perm_str,
         hard_links_pointing,
@@ -284,8 +280,7 @@ fn long_format(path: &Path, virtual_path: String, max_sizes: MaxSizes) -> String
         group_name,
         size_or_device, // size_or_device already contains size_width formatting
         format_time(modified_at),
-        virtual_path,
-        sym_link_tail,
+        virtual_path
     )
 }
 
