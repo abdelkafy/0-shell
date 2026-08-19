@@ -27,9 +27,9 @@ pub fn run_dir(cmd: models::Ls) {
     let entries = match std::fs::read_dir(&cmd.path) {
         Ok(read_dir) => read_dir,
         Err(err) => {
-            eprintln!("ls: dir:{}",err);
+            eprintln!("ls: dir:{}", err);
             return;
-        },
+        }
     };
     let unfiltered_files = entries.filter_map(|entry| entry.ok().map(|e| e.path()));
     let mut files: Vec<PathBuf> = Vec::new();
@@ -140,7 +140,7 @@ pub fn ls_files(files: Vec<PathBuf>, cmd_flags: Flags, is_dir: bool) {
                             max_owner_width,
                             max_group_width,
                         },
-                        cmd_flags.classify
+                        cmd_flags.classify,
                     ),
                 }
             })
@@ -201,7 +201,12 @@ pub fn ls_files(files: Vec<PathBuf>, cmd_flags: Flags, is_dir: bool) {
     }
 }
 
-fn long_format(path: &Path, virtual_path: String, max_sizes: MaxSizes,is_classify:bool) -> String {
+fn long_format(
+    path: &Path,
+    virtual_path: String,
+    max_sizes: MaxSizes,
+    is_classify: bool,
+) -> String {
     let metadata = match path.symlink_metadata() {
         Ok(meta) => meta,
         Err(_) => return path.to_string_lossy().into_owned(),
@@ -269,15 +274,12 @@ fn long_format(path: &Path, virtual_path: String, max_sizes: MaxSizes,is_classif
     let max_links_width = max_sizes.max_links_width;
     let max_owner_width = max_sizes.max_owner_width;
     let max_group_width = max_sizes.max_group_width;
-    let sym_link_tail = if metadata.file_type().is_symlink() {
+    let suffix = if metadata.file_type().is_symlink() {
         classify(path, true)
+    } else if is_classify {
+        classify(path, false)
     } else {
-        if is_classify {
-            classify(path, true)
-        }else{
-            "".to_string()
-        }
-        
+        String::new()
     };
     format!(
         "{}{} {:>max_links_width$} {:<max_owner_width$} {:<max_group_width$} {} {} {}{}",
@@ -289,7 +291,7 @@ fn long_format(path: &Path, virtual_path: String, max_sizes: MaxSizes,is_classif
         size_or_device, // size_or_device already contains size_width formatting
         format_time(modified_at),
         virtual_path,
-        sym_link_tail,
+        suffix,
     )
 }
 
