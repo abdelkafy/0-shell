@@ -259,37 +259,73 @@ fn long_format(
         suffix,
     )
 }
-
 fn classify(file_path: &Path, long: bool) -> String {
     let metadata = match file_path.symlink_metadata() {
         Ok(meta) => meta,
         Err(_) => return String::new(),
     };
 
-    let symbol = if metadata.file_type().is_dir() {
-        "/".to_string()
-    } else if metadata.file_type().is_fifo() {
-        "|".to_string()
-    } else if metadata.file_type().is_symlink() {
+    if metadata.file_type().is_symlink() {
+        let target_suffix = classify_symlink_target(file_path);
+
         if long {
             match file_path.read_link() {
-                Ok(target) => format!(" -> {}", target.display()),
+                Ok(target) => {
+                    format!(" -> {}{}", target.display(), target_suffix)
+                }
                 Err(_) => " -> ?".to_string(),
             }
         } else {
             "@".to_string()
         }
+    } else if metadata.file_type().is_dir() {
+        "/".to_string()
+    } else if metadata.file_type().is_fifo() {
+        "|".to_string()
     } else if metadata.file_type().is_socket() {
         "=".to_string()
     } else if is_exe(&metadata) {
         "*".to_string()
     } else {
         String::new()
+    }
+}
+fn classify_symlink_target(file_path: &Path) -> String {
+    let target = match file_path.read_link() {
+        Ok(target) => target,
+        Err(_) => return String::new(),
     };
 
-    symbol
-}
+    let target_path = if target.is_absolute() {
+        target
+    } else {
+        match file_path.parent() {
+            Some(parent) => parent.join(target),
+            None => target,
+        }
+    };
 
+    let metadata = match target_path.metadata() {
+        Ok(metadata) => metadata,
+        Err(_) => return String::new(),
+    };
+
+    if metadata.is_dir() {
+        "/".to_string()
+    } else if metadata.file_type().is_fifo() {
+        "|".to_string()
+    } else if metadata.file_type().is_socket() {
+        "=".to_string()
+    } else if metadata.file_type().is_char_device() {
+        String::new()
+    } else if metadata.file_type().is_block_device() {
+        String::new()
+    } else if is_exe(&metadata) {
+        "*".to_string()
+    } else {
+        String::new()
+    }
+}
 fn is_exe(entry: &Metadata) -> bool {
     entry.is_file() && (entry.permissions().mode() & 0o111) != 0
 }
