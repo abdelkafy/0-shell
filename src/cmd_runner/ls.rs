@@ -59,10 +59,10 @@ pub fn run_dir(cmd: models::Ls) {
     if cmd.flags.long {
         println!("total {}", total_blocks);
     }
-    ls_files(files, cmd.flags);
+    ls_files(files, true,cmd.flags);
 }
 
-pub fn ls_files(files: Vec<PathBuf>, cmd_flags: Flags) {
+pub fn ls_files(files: Vec<PathBuf>,is_dir:bool, cmd_flags: Flags) {
     let mut formatted: Vec<File> = if cmd_flags.long {
         let max_size_width = std::cmp::max(
             8,
@@ -112,11 +112,19 @@ pub fn ls_files(files: Vec<PathBuf>, cmd_flags: Flags) {
         );
         files
             .iter()
-            .map(| path| {
-                let virtual_path = path
+            .enumerate()
+            .map(|(index,path)| {
+
+                let virtual_path = if is_dir && index ==0 {
+                    ".".to_string()
+                }else if is_dir && index ==1 {
+                    "..".to_string()
+                }else {
+                    path
                     .file_name()
                     .map(|name| name.to_string_lossy().into_owned())
-                    .unwrap_or_else(|| path.display().to_string());
+                    .unwrap_or_else(|| path.display().to_string())
+                };
                 File {
                     file: path,
                     formatted_output: long_format(
@@ -136,11 +144,19 @@ pub fn ls_files(files: Vec<PathBuf>, cmd_flags: Flags) {
     } else {
         files
             .iter()
-            .map(|path| {
-                let mut virtual_path = path
+            .enumerate()
+           .map(|(index,path)| {
+
+                let mut virtual_path = if is_dir && index ==0 {
+                    ".".to_string()
+                }else if is_dir && index ==1 {
+                    "..".to_string()
+                }else {
+                    path
                     .file_name()
                     .map(|name| name.to_string_lossy().into_owned())
-                    .unwrap_or_else(|| path.display().to_string());
+                    .unwrap_or_else(|| path.display().to_string())
+                };
                 File {
                     file: path,
                     formatted_output: {

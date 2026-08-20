@@ -61,7 +61,8 @@ pub fn ls_manager(args: Vec<String>) {
     let files_is_empty = valid_files.is_empty();
     if !files_is_empty{
          ls::ls_files(
-        valid_files,
+        valid_files
+        ,false,
         Flags {
             all,
             long,
