@@ -28,6 +28,7 @@ fn main() {
 
     let mut shell_path = ShellPath::new();
     let mut input = String::new();
+    let mut continuation = false;
 
     print_prompt();
 
@@ -35,9 +36,11 @@ fn main() {
         match event::read() {
             Ok(Event::Key(key)) => {
 
-
-                if key.code == KeyCode::Char('c') && key.modifiers.contains(KeyModifiers::CONTROL) {
+                if key.code == KeyCode::Char('c')
+                    && key.modifiers.contains(KeyModifiers::CONTROL)
+                {
                     input.clear();
+                    continuation = false;
 
                     print!("^C\r\n");
                     print_prompt();
@@ -45,13 +48,15 @@ fn main() {
                     continue;
                 }
 
-
-                if key.code == KeyCode::Char('d') && key.modifiers.contains(KeyModifiers::CONTROL) {
+                if key.code == KeyCode::Char('d')
+                    && key.modifiers.contains(KeyModifiers::CONTROL)
+                {
                     if input.is_empty() {
                         break;
                     }
 
                     input.clear();
+                    continuation = false;
 
                     print!("\r\x1b[2K");
                     print_prompt();
@@ -59,17 +64,30 @@ fn main() {
                     continue;
                 }
 
-
                 match key.code {
-
 
                     KeyCode::Enter => {
                         print!("\r\n");
                         io::stdout().flush().unwrap_or_default();
 
+                        if continuation {
+                            let last_line = input
+                                .split('\n')
+                                .last()
+                                .unwrap_or("");
+
+                            if last_line.trim().is_empty() {
+                                input.clear();
+                                continuation = false;
+
+                                print_prompt();
+                                continue;
+                            }
+                        }
 
                         if needs_more_input(&input) {
                             input.push('\n');
+                            continuation = true;
 
                             print!("> ");
                             io::stdout().flush().unwrap_or_default();
@@ -80,6 +98,7 @@ fn main() {
                         let command_input = input.clone();
 
                         input.clear();
+                        continuation = false;
 
                         if !command_input.trim().is_empty() {
 
@@ -109,7 +128,6 @@ fn main() {
                         print_prompt();
                     }
 
-
                     KeyCode::Backspace => {
                         if input.pop().is_some() {
                             execute!(
@@ -122,7 +140,6 @@ fn main() {
                             io::stdout().flush().unwrap_or_default();
                         }
                     }
-
 
                     KeyCode::Char(c) => {
                         input.push(c);
@@ -215,6 +232,7 @@ fn has_unclosed_quotes(input: &str) -> bool {
 
     single_quote || double_quote || backtick
 }
+
 fn ends_with_unescaped_backslash(input: &str) -> bool {
     let line = input.trim_end_matches(['\n', '\r']);
 
