@@ -8,19 +8,28 @@ pub fn run(args: Vec<String>) {
         return;
     }
 
-    let mut recursive = false;
+   let mut recursive = false;
+    let mut parse_flags = true;
     let mut targets = Vec::new();
-
+    
     for arg in &args {
-        match arg.as_str() {
-            "-r" => {
-                recursive = true;
-            }
-
-            _ => {
-                targets.push(arg);
+        if parse_flags {
+            match arg.as_str() {
+                "-r" => {
+                    recursive = true;
+                    continue;
+                }
+            
+                "--" => {
+                    parse_flags = false;
+                    continue;
+                }
+            
+                _ => {}
             }
         }
+    
+        targets.push(arg);
     }
 
     if targets.is_empty() {
