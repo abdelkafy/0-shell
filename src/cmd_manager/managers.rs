@@ -143,8 +143,12 @@ pub fn exit_manager(args: Vec<String>) {
 
     match args[0].parse::<i64>() {
         Ok(n) => {
-            let status = n.rem_euclid(256) as i32;
-            std::process::exit(status);
+            if n > 0 {
+                let status = n.rem_euclid(256) as i32;
+                std::process::exit(status);
+            } else {
+                eprintln!("sh: exit: Illegal number: {}", args[0]);
+            }
         }
         Err(_) => {
             eprintln!("sh: exit: Illegal number: {}", args[0]);

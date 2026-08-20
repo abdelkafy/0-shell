@@ -1,5 +1,4 @@
 use std::fs;
-use crate::errors::format_error;
 
 pub fn run(names: Vec<String>) {
     if names.is_empty() {
@@ -35,11 +34,10 @@ pub fn run(names: Vec<String>) {
     for name in targets {
         let name = name.replace('\n', "\\n");
 
-        if let Err(err) = fs::create_dir(&name) {
+        if let Err(_) = fs::create_dir(&name) {
             eprintln!(
-                "mkdir: cannot create directory '{}': {}",
+                "mkdir: cannot create directory '{}'",
                 name,
-                format_error(&err)
             );
         }
     }

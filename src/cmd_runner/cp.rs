@@ -74,11 +74,11 @@ pub fn run(args: Vec<String>) {
             }
         }
 
-        if let Err(err) = fs::copy(source_path, &target) {
+        if let Err(_) = fs::copy(source_path, &target) {
             eprintln!(
-                "cp: cannot create regular file '{}': {}",
+                "cp: cannot create regular file '{}'",
                 target.display(),
-                format_error(&err)
+                
             );
         }
     }
