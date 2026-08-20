@@ -1,5 +1,5 @@
 use std::fs;
-use std::io::ErrorKind;
+use crate::errors::format_error;
 
 pub fn run(names: Vec<String>) {
     if names.is_empty() {
@@ -10,39 +10,12 @@ pub fn run(names: Vec<String>) {
     for name in names {
         let name = name.replace('\n', "\\n");
 
-        match fs::create_dir(&name) {
-            Ok(_) => {}
-
-            Err(err) => match err.kind() {
-                ErrorKind::AlreadyExists => {
-                    eprintln!(
-                        "mkdir: cannot create directory '{}': File exists",
-                        name
-                    );
-                }
-
-                ErrorKind::NotFound => {
-                    eprintln!(
-                        "mkdir: cannot create directory '{}': No such file or directory",
-                        name
-                    );
-                }
-
-                ErrorKind::PermissionDenied => {
-                    eprintln!(
-                        "mkdir: cannot create directory '{}': Permission denied",
-                        name
-                    );
-                }
-
-                _ => {
-                    eprintln!(
-                        "mkdir: cannot create directory '{}': {}",
-                        name,
-                        err
-                    );
-                }
-            },
+        if let Err(err) = fs::create_dir(&name) {
+            eprintln!(
+                "mkdir: cannot create directory '{}': {}",
+                name,
+                format_error(&err)
+            );
         }
     }
 }

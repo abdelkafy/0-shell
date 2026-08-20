@@ -106,8 +106,8 @@ pub fn ls_manager(args: Vec<String>) {
     }
 }
 
-pub fn pwd_manager(args: Vec<String>) {
-    pwd::run(args);
+pub fn pwd_manager() {
+    pwd::run();
 }
 
 pub fn cat_manager(args: Vec<String>) {

@@ -10,10 +10,7 @@ pub fn run(args: Vec<String>, shell_path: &mut ShellPath) {
         &args[..]
     };
 
-    if args.len() > 1 {
-        eprintln!("cd: too many arguments");
-        return;
-    }
+    let first_arg = args.first().map(String::as_str);
 
     let home = match env::var("HOME") {
         Ok(home) => PathBuf::from(home),
@@ -24,7 +21,7 @@ pub fn run(args: Vec<String>, shell_path: &mut ShellPath) {
         }
     };
 
-    let target = match args.first().map(String::as_str) {
+    let target = match first_arg {
         None => home.clone(),
 
         Some("-") => {
@@ -43,6 +40,7 @@ pub fn run(args: Vec<String>, shell_path: &mut ShellPath) {
         Some(path) if path.starts_with("~/") => {
             home.join(&path[2..])
         }
+
         Some(path) => PathBuf::from(path),
     };
 
@@ -81,7 +79,7 @@ pub fn run(args: Vec<String>, shell_path: &mut ShellPath) {
     shell_path.previous = Some(old_current);
     shell_path.current = new_current.clone();
 
-    if args.first().map(String::as_str) == Some("-") {
+    if first_arg == Some("-") {
         println!("{}", new_current.display());
     }
 }

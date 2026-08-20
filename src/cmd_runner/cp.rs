@@ -63,10 +63,7 @@ pub fn run(args: Vec<String>) {
             destination.clone()
         };
 
-        if let (Ok(source_canonical), Ok(target_canonical)) = (
-            fs::canonicalize(source_path),
-            fs::canonicalize(&target),
-        ) {
+        if let (Ok(source_canonical), Ok(target_canonical)) = ( fs::canonicalize(source_path),fs::canonicalize(&target)) {
             if source_canonical == target_canonical {
                 eprintln!(
                     "cp: '{}' and '{}' are the same file",

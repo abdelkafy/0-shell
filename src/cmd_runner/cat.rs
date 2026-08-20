@@ -13,7 +13,7 @@ pub fn run(args: Vec<String>) {
     for path in args {
         if path == "-" {
             run_stdin();
-            continue;
+            return;
         }
 
         match File::open(&path) {
@@ -21,9 +21,7 @@ pub fn run(args: Vec<String>) {
                 let mut reader = BufReader::new(file);
                 let mut data = Vec::new();
 
-                if let Err(err) =
-                    std::io::Read::read_to_end(&mut reader, &mut data)
-                {
+                if let Err(err) = std::io::Read::read_to_end(&mut reader, &mut data) {
                     eprintln!("cat: read error: {}", format_error(&err));
                     return;
                 }
@@ -43,18 +41,12 @@ pub fn run(args: Vec<String>) {
                 let _ = io::stdout().flush();
             }
 
-            Err(err) => match err.kind() {
-                io::ErrorKind::IsADirectory => {
-                    eprintln!("cat: read error: Is a directory");
-                }
-
-                _ => {
-                    eprintln!(
-                        "cat: can't open '{}': {}",
-                        path,
-                        format_error(&err)
-                    );
-                }
+           Err(err) => {
+                eprintln!(
+                    "cat: {}: {}",
+                    path,
+                    format_error(&err)
+                );
             },
         }
     }
