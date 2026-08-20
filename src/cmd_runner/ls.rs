@@ -209,18 +209,7 @@ fn long_format(
         }
     };
     let mode = permissions.mode();
-    let perm_str = format!(
-        "{}{}{}{}{}{}{}{}{}",
-        if mode & 0b100_000_000 != 0 { 'r' } else { '-' },
-        if mode & 0b010_000_000 != 0 { 'w' } else { '-' },
-        if mode & 0b001_000_000 != 0 { 'x' } else { '-' },
-        if mode & 0b000_100_000 != 0 { 'r' } else { '-' },
-        if mode & 0b000_010_000 != 0 { 'w' } else { '-' },
-        if mode & 0b000_001_000 != 0 { 'x' } else { '-' },
-        if mode & 0b000_000_100 != 0 { 'r' } else { '-' },
-        if mode & 0b000_000_010 != 0 { 'w' } else { '-' },
-        if mode & 0b000_000_001 != 0 { 'x' } else { '-' },
-    );
+    let perm_str = format_permissions(mode);
 
     let hard_links_pointing = metadata.nlink();
 
@@ -323,4 +312,40 @@ fn format_time(time: SystemTime) -> String {
     } else {
         local.strftime("%b %e  %Y").to_string()
     }
+}
+
+fn format_permissions(mode: u32) -> String {
+    let mut result = String::with_capacity(10);
+
+    result.push(if mode & 0o400 != 0 { 'r' } else { '-' });
+    result.push(if mode & 0o200 != 0 { 'w' } else { '-' });
+    result.push(if mode & 0o4000 != 0 {
+        if mode & 0o100 != 0 { 's' } else { 'S' }
+    } else if mode & 0o100 != 0 {
+        'x'
+    } else {
+        '-'
+    });
+
+    result.push(if mode & 0o040 != 0 { 'r' } else { '-' });
+    result.push(if mode & 0o020 != 0 { 'w' } else { '-' });
+    result.push(if mode & 0o2000 != 0 {
+        if mode & 0o010 != 0 { 's' } else { 'S' }
+    } else if mode & 0o010 != 0 {
+        'x'
+    } else {
+        '-'
+    });
+
+    result.push(if mode & 0o004 != 0 { 'r' } else { '-' });
+    result.push(if mode & 0o002 != 0 { 'w' } else { '-' });
+    result.push(if mode & 0o1000 != 0 {
+        if mode & 0o001 != 0 { 't' } else { 'T' }
+    } else if mode & 0o001 != 0 {
+        'x'
+    } else {
+        '-'
+    });
+
+    result
 }
